@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hit & Blow - v8 (AI & Turn)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --my-color: #1a5c9a;
+            --my-light: #3a8cd9;
+            --opp-color: #8a0a2a;
+            --opp-light: #b91c4c;
+            --bg-color: #4a7a9a;
+            --text-color: #fff;
+            --accent-red: #e60012;
+            --table-header: #3a5a7a;
+            --table-row-odd: #dbe4f1;
+            --table-row-even: #c8d6e8;
+            --table-text: #1a3a5a;
+        }
+
+        body {
+            font-family: 'M PLUS 1p', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+        }
+
+        /* --- ヘッダー --- */
+        .top-header {
+            display: flex;
+            height: 80px;
+            background: linear-gradient(90deg, var(--my-color) 50%, var(--opp-color) 50%);
+            position: relative;
+            flex-shrink: 0;
+        }
+        .player-info {
+            width: 50%;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        .player-info.mine { justify-content: flex-start; }
+        .player-info.opp { justify-content: flex-end; text-align: right; }
+        .avatar {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background: #ccc;
+            border: 3px solid rgba(255,255,255,0.3);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 30px; color: #fff; overflow: hidden;
+        }
+        .player-details { margin: 0 10px; }
+        .player-name { font-weight: 800; font-size: 16px; }
+        
+        /* 先手・後手バッジ */
+        .turn-order-badge {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+        }
+        .order-label {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #666;
+        }
+        .order-label.active.mine { background: var(--my-light); }
+        .order-label.active.opp { background: var(--opp-light); }
+
+        /* --- メインコンテンツ --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* A. バトル画面 */
+        #gameArea {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .secret-area {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: linear-gradient(90deg, #124275 50%, #690620 50%);
+            flex-shrink: 0;
+        }
+        .num-cards { display: flex; gap: 5px; }
+        .num-card {
+            width: 45px; height: 55px;
+            background: #fff;
+            border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 36px; font-weight: 800;
+            color: var(--my-color);
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        .num-card.question {
+            background: linear-gradient(135deg, #5a8ca8, #3a6c88);
+            color: #fff;
+            font-size: 32px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .history-container {
+            flex-grow: 1;
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            overflow: hidden;
+        }
+        .history-col {
+            width: 50%;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        .history-header {
+            background: var(--table-header);
+            color: #fff;
+            font-weight: 700; font-size: 14px;
+            padding: 8px;
+            display: flex; justify-content: space-between;
+        }
+        .h-head-left { text-align: left; flex-grow: 1; padding-left: 10px; }
+        .h-head-hb { width: 30px; text-align: center; }
+        
+        .history-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
+        }
+        .h-row {
+            display: flex;
+            padding: 6px 4px; /* 少し詰めました */
+            color: var(--table-text); font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            flex-shrink: 0;
+            align-items: center;
+        }
+        .h-row:nth-child(odd) { background: var(--table-row-odd); }
+        .h-row:nth-child(even) { background: var(--table-row-even); }
+        
+        /* 新しい列：ターン数 */
+        .h-turn {
+            width: 20px;
+            font-size: 11px;
+            color: #8899aa;
+            border-right: 1px solid rgba(0,0,0,0.1);
+            margin-right: 5px;
+            text-align: center;
+            font-family: 'M PLUS 1p', sans-serif;
+        }
+
+        .h-num { flex-grow: 1; text-align: center; letter-spacing: 3px; }
+        .h-val { width: 25px; text-align: center; }
+        .h-val.hit-3 { color: var(--accent-red); }
+
+        /* B. セットアップ画面 */
+        #setupArea {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background: rgba(0,0,0,0.2);
+            color: #fff;
+        }
+        .setup-title { font-size: 20px; margin-bottom: 20px; font-weight: bold; }
+        .setup-input {
+            font-size: 60px; font-weight: 800; letter-spacing: 15px;
+            color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* --- フッター --- */
+        .footer-area {
+            background: var(--bg-color);
+            padding: 10px 15px 30px;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 10;
+        }
+        .footer-bg-curve {
+            position: absolute; top: -20px; left: 0; width: 100%; height: 30px;
+            background: var(--bg-color);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            z-index: 0;
+        }
+
+        .status-bar {
+            position: relative; z-index: 1;
+            display: flex; align-items: center;
+            margin-bottom: 15px;
+        }
+        .timer-circle {
+            width: 50px; height: 50px;
+            background: #fff; border-radius: 50%;
+            border: 4px solid #3a5a7a;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 20px; font-weight: 800; color: var(--table-text);
+            position: relative;
+        }
+        
+        .input-status-container {
+            flex-grow: 1; margin-left: 15px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .game-message {
+            font-size: 12px; font-weight: 700; color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5); margin-bottom: 5px;
+        }
+        .input-display-box {
+            width: 200px; height: 45px;
+            background: linear-gradient(to bottom, #4a7a9a, #2a5a7a);
+            border: 2px solid #fff; border-radius: 10px;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 28px; font-weight: 800; letter-spacing: 8px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.7);
+        }
+
+        .keypad-area {
+            position: relative; z-index: 1;
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+            margin-bottom: 8px;
+        }
+        .key-btn {
+            height: 55px;
+            background: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
+            border: none; border-radius: 8px;
+            font-size: 24px; font-weight: 800; color: #333;
+            box-shadow: 0 3px 0 #999;
+        }
+        .key-btn:active.key-active {
+            transform: translateY(3px); box-shadow: none; background: #b0b0b0;
+        }
+        
+        .ctrl-area {
+            position: relative; z-index: 1;
+            display: flex; gap: 8px;
+        }
+        .ctrl-btn {
+            flex: 1; height: 50px; border: none; border-radius: 8px;
+            font-size: 18px; font-weight: 700; color: #fff;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+        }
+        .del-btn { background: #d9534f; box-shadow: 0 3px 0 #c9302c; }
+        .call-btn { background: #5cb85c; box-shadow: 0 3px 0 #4cae4c; }
+        .ctrl-btn:active.key-active { transform: translateY(3px); box-shadow: none; opacity: 0.9; }
+        .disabled { opacity: 0.5; pointer-events: none; }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="top-header">
+        <div class="player-info mine">
+            <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" width="40"></div>
+            <div class="player-details">
+                <div class="player-name">あなた</div>
+            </div>
+        </div>
+        <div class="turn-order-badge">
+            <div class="order-label mine active">先手</div>
+            <div class="order-label opp">後手</div>
+        </div>
+        <div class="player-info opp">
+            <div class="player-details">
+                <div class="player-name" id="cpuName">CPU</div>
+            </div>
+            <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" width="40"></div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div id="setupArea">
+            <div class="setup-title">あなたの番号を決めてください</div>
+            <div class="setup-input" id="setupDisplay">_ _ _</div>
+        </div>
+
+        <div id="gameArea" class="hidden">
+            <div class="secret-area">
+                <div class="num-cards mine" id="mySecretCards">
+                    <div class="num-card">?</div><div class="num-card">?</div><div class="num-card">?</div>
+                </div>
+                <div class="num-cards opp">
+                    <div class="num-card question">?</div>
+                    <div class="num-card question">?</div>
+                    <div class="num-card question">?</div>
+                </div>
+            </div>
+
+            <div class="history-container">
+                <div class="history-col mine">
+                    <div class="history-header">
+                        <div class="h-head-left">あなたの推理</div>
+                        <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+                    </div>
+                    <div class="history-list" id="playerLogList">
+                        <div class="h-row placeholder"><div class="h-num">- - -</div></div>
+                    </div>
+                </div>
+                <div class="history-col opp">
+                    <div class="history-header">
+                        <div class="h-head-left">相手の推理</div>
+                        <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+                    </div>
+                    <div class="history-list" id="cpuLogList">
+                         <div class="h-row placeholder"><div class="h-num">- - -</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-area">
+        <div class="footer-bg-curve"></div>
+        <div class="status-bar">
+            <div class="timer-circle" id="timerDisplay">60</div>
+            <div class="input-status-container">
+                <div class="game-message" id="gameMessage">番号を決めてください</div>
+                <div class="input-display-box" id="footerInputDisplay">_ _ _</div>
+            </div>
+        </div>
+        <div class="keypad-area">
+            <button class="key-btn" data-key="0">0</button><button class="key-btn" data-key="1">1</button>
+            <button class="key-btn" data-key="2">2</button><button class="key-btn" data-key="3">3</button>
+            <button class="key-btn" data-key="4">4</button><button class="key-btn" data-key="5">5</button>
+            <button class="key-btn" data-key="6">6</button><button class="key-btn" data-key="7">7</button>
+            <button class="key-btn" data-key="8">8</button><button class="key-btn" data-key="9">9</button>
+        </div>
+        <div class="ctrl-area">
+            <button class="ctrl-btn del-btn" data-key="del">DEL</button>
+            <button class="ctrl-btn call-btn" data-key="call" id="callBtn">決定</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 変数 ---
+        let isSetupMode = true;
+        let isMyTurn = true;
+        let isGameRunning = false;
+        let currentInput = [];
+        let mySecret = [];
+        let cpuSecret = [];
+        let currentLevel = 1;
+        let aiCandidates = [];
+        let timeLeft = 60;
+        let timerInterval = null;
+        let turnCount = 1; // ターンカウント変数
+
+        // オーディオ
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(t,f,d){if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
+        const SE={click:()=>playTone('triangle',800,0.05),error:()=>playTone('sawtooth',150,0.15),enter:()=>{playTone('sine',1200,0.08);setTimeout(()=>playTone('sine',600,0.08),50)},win:()=>{[523,659,783,1046].forEach((f,i)=>setTimeout(()=>playTone('square',f,0.2),i*100))},lose:()=>{[300,250,200,150].forEach((f,i)=>setTimeout(()=>playTone('sawtooth',f,0.2),i*150))}};
+
+        // --- 初期化 ---
+        window.onload = function() {
+            const sLvl=localStorage.getItem('hb_level');
+            if(sLvl && !isNaN(sLvl)) currentLevel=parseInt(sLvl);
+            updateCpuNameDisplay(); // CPUレベル表示
+            updateMessage("番号を決めて、決定を押してください");
+            document.getElementById('callBtn').innerText = "決定";
+            updateInputDisplay();
+        };
+
+        function updateCpuNameDisplay() {
+            document.getElementById('cpuName').innerText = `CPU (Lv.${currentLevel})`;
+        }
+
+        // --- 入力制御 ---
+        document.querySelectorAll('button[data-key]').forEach(btn => {
+            ['touchstart','mousedown'].forEach(evt => {
+                btn.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    handleKey(btn.dataset.key, btn);
+                }, {passive:false});
+            });
+        });
+
+        function handleKey(key, btnEle) {
+            btnEle.classList.add('key-active');
+            setTimeout(()=>btnEle.classList.remove('key-active'), 100);
+
+            if(!isMyTurn && !isSetupMode) return; 
+
+            if(key === 'del') {
+                if(currentInput.length > 0) { currentInput.pop(); SE.click(); }
+            } else if(key === 'call') {
+                if(currentInput.length !== 3) { SE.error(); return; }
+                SE.enter();
+                if(isSetupMode) startGame(); else playerCall();
+            } else {
+                const num = parseInt(key);
+                if(currentInput.length < 3 && !currentInput.includes(num)) {
+                    currentInput.push(num); SE.click();
+                } else { SE.error(); }
+            }
+            updateInputDisplay();
+        }
+
+        function updateInputDisplay() {
+            let displayArr = [...currentInput];
+            while(displayArr.length < 3) displayArr.push("_");
+            let str = displayArr.join(" ");
+
+            if(isSetupMode) document.getElementById('setupDisplay').innerText = str;
+            document.getElementById('footerInputDisplay').innerText = str;
+            document.getElementById('callBtn').classList.toggle('disabled', currentInput.length !== 3);
+        }
+
+        // --- ゲーム開始 ---
+        function startGame() {
+            mySecret = [...currentInput];
+            cpuSecret = generateCpuSecret();
+            initCandidates();
+            
+            isSetupMode = false;
+            isGameRunning = true;
+            turnCount = 1; // リセット
+            
+            document.getElementById('setupArea').classList.add('hidden');
+            document.getElementById('gameArea').classList.remove('hidden');
+            document.getElementById('callBtn').innerText = "CALL";
+            
+            const myCards = document.getElementById('mySecretCards').children;
+            for(let i=0; i<3; i++) myCards[i].innerText = mySecret[i];
+            
+            document.querySelectorAll('.placeholder').forEach(el=>el.remove());
+
+            currentInput = []; updateInputDisplay();
+            startTurn(true);
+        }
+
+        // --- ターン処理 ---
+        function startTurn(isPlayer) {
+            isMyTurn = isPlayer;
+            clearInterval(timerInterval);
+            timeLeft = 60;
+            document.getElementById('timerDisplay').innerText = timeLeft;
+
+            if(isPlayer) {
+                updateMessage(`あなたのターン (${turnCount}手目)`);
+                document.querySelector('.order-label.mine').classList.add('active');
+                document.querySelector('.order-label.opp').classList.remove('active');
+                document.getElementById('callBtn').classList.remove('disabled');
+                timerInterval = setInterval(timerTick, 1000);
+            } else {
+                updateMessage(`相手は考えています... (${turnCount}手目)`);
+                document.querySelector('.order-label.mine').classList.remove('active');
+                document.querySelector('.order-label.opp').classList.add('active');
+                document.getElementById('callBtn').classList.add('disabled');
+                setTimeout(cpuTurn, 1000 + Math.random()*500);
+            }
+        }
+
+        function timerTick() {
+            timeLeft--;
+            document.getElementById('timerDisplay').innerText = timeLeft < 10 ? "0"+timeLeft : timeLeft;
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                if(isMyTurn) {
+                   while(currentInput.length < 3) {
+                       let n = Math.floor(Math.random()*10);
+                       if(!currentInput.includes(n)) currentInput.push(n);
+                   }
+                   playerCall();
+                }
+            }
+        }
+
+        // --- プレイヤー ---
+        function playerCall() {
+            const guess = [...currentInput];
+            const result = checkHitBlow(guess, cpuSecret);
+            addLog('playerLogList', guess, result, turnCount);
+            currentInput = []; updateInputDisplay();
+
+            if(result.hit === 3) { finishGame(true); return; }
+            startTurn(false);
+        }
+
+        // --- CPUアクション ---
+        function cpuTurn() {
+            try {
+                let guess = getAiGuess(); // 強化されたAI
+                if(!guess || guess.length !== 3) guess = generateCpuSecret(); 
+
+                const result = checkHitBlow(guess, mySecret);
+                addLog('cpuLogList', guess, result, turnCount);
+                SE.click();
+
+                // 候補絞り込み
+                if(currentLevel >= 3) {
+                    try {
+                        aiCandidates = aiCandidates.filter(c => {
+                            const chk = checkHitBlow(guess, c);
+                            return chk.hit===result.hit && chk.ball===result.ball;
+                        });
+                    } catch(e) { initCandidates(); }
+                }
+
+                if(result.hit === 3) { finishGame(false); return; }
+
+            } catch(e) { }
+            
+            turnCount++; // 次のターンへ
+            startTurn(true);
+        }
+
+        // --- AIロジック (Minimax / 最適化) ---
+        function generateCpuSecret(){
+            let a=[0,1,2,3,4,5,6,7,8,9],r=[];
+            for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}
+            return r;
+        }
+        function initCandidates(){
+            aiCandidates=[];
+            for(let i=0;i<10;i++)
+                for(let j=0;j<10;j++)
+                    if(i!==j) for(let k=0;k<10;k++) if(k!==i&&k!==j) aiCandidates.push([i,j,k]);
+        }
+        
+        // ★ここがAIの頭脳強化ポイント
+        function getAiGuess(){
+            // 初心者: ランダム
+            if(currentLevel <= 2 || !aiCandidates || aiCandidates.length===0) return generateCpuSecret();
+            
+            // 中級: 候補からランダム (今まで通り)
+            if(currentLevel <= 5) return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
+
+            // 上級(Lv6以上): 最適化ロジック (簡易Minimax)
+            // 候補が多すぎるときは重くなるのでランダムにする
+            if(aiCandidates.length > 150) return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
+
+            let bestGuess = aiCandidates[0];
+            let minMaxRemaining = 9999;
+
+            // 全候補について「もしそれを言ったらどうなるか」をシミュレーション
+            for (let guess of aiCandidates) {
+                let maxRemainingForGuess = 0;
+                let groups = {};
+                
+                // すべての可能性に対してHit/Blowパターンを計算
+                for (let possibleSecret of aiCandidates) {
+                    let res = checkHitBlow(guess, possibleSecret);
+                    let key = `${res.hit}-${res.ball}`;
+                    if (!groups[key]) groups[key] = 0;
+                    groups[key]++;
+                }
+                
+                // 「最悪のケース」で残る候補数を算出
+                for (let key in groups) {
+                    if (groups[key] > maxRemainingForGuess) maxRemainingForGuess = groups[key];
+                }
+
+                // 最悪のケースでも候補が一番少なくなる数字を選ぶ
+                if (maxRemainingForGuess < minMaxRemaining) {
+                    minMaxRemaining = maxRemainingForGuess;
+                    bestGuess = guess;
+                }
+            }
+            return bestGuess;
+        }
+
+        function checkHitBlow(g,t){
+            if(!g || !t) return {hit:0, ball:0}; 
+            let h=0,b=0;
+            for(let i=0;i<3;i++){
+                if(g[i]===t[i])h++;
+                else if(t.includes(g[i]))b++;
+            }
+            return {hit:h,ball:b};
+        }
+
+        // --- ログ表示 (ターン数追加) ---
+        function addLog(listId, guessArr, result, turn) {
+            const row = document.createElement('div');
+            row.className = 'h-row';
+            // 左端にターン数を表示する新しいdivを追加
+            row.innerHTML = `<div class="h-turn">${turn}</div>
+                             <div class="h-num">${guessArr.join(" ")}</div>
+                             <div class="h-val ${result.hit===3?'hit-3':''}">${result.hit}</div>
+                             <div class="h-val">${result.ball}</div>`;
+            const list = document.getElementById(listId);
+            list.appendChild(row);
+            list.scrollTop = list.scrollHeight;
+        }
+        
+        function updateMessage(msg) {
+            document.getElementById('gameMessage').innerText = msg;
+        }
+
+        function finishGame(isWin) {
+            clearInterval(timerInterval);
+            isGameRunning = false;
+            if(isWin) { SE.win(); alert("YOU WIN!"); currentLevel++; } 
+            else { SE.lose(); alert("YOU LOSE..."); if(currentLevel>1)currentLevel--; }
+            localStorage.setItem('hb_level', currentLevel);
+            location.reload();
+        }
+    </script>
+</body>
+</html>
