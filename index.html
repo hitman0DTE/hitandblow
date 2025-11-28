@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hit & Blow - v7 (Pro Design)</title>
+    <title>Hit & Blow - v7.1 (Fix)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --my-color: #1a5c9a; /* 画像の青 */
+            --my-color: #1a5c9a;
             --my-light: #3a8cd9;
-            --opp-color: #8a0a2a; /* 画像の赤 */
+            --opp-color: #8a0a2a;
             --opp-light: #b91c4c;
-            --bg-color: #4a7a9a; /* 全体の背景青 */
+            --bg-color: #4a7a9a;
             --text-color: #fff;
             --accent-red: #e60012;
             --table-header: #3a5a7a;
@@ -28,13 +28,13 @@
             color: var(--text-color);
             margin: 0;
             padding: 0;
-            min-height: 100vh;
+            height: 100vh; /* 画面いっぱいに固定 */
             display: flex;
             flex-direction: column;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             touch-action: manipulation;
-            overflow: hidden; /* スクロール禁止 */
+            overflow: hidden;
         }
 
         /* --- ヘッダー --- */
@@ -43,6 +43,7 @@
             height: 80px;
             background: linear-gradient(90deg, var(--my-color) 50%, var(--opp-color) 50%);
             position: relative;
+            flex-shrink: 0; /* 縮まないように */
         }
         .player-info {
             width: 50%;
@@ -63,7 +64,6 @@
         }
         .player-details { margin: 0 10px; }
         .player-name { font-weight: 800; font-size: 16px; }
-        .player-rate { font-size: 12px; opacity: 0.8; }
         
         /* 先手・後手バッジ */
         .turn-order-badge {
@@ -83,12 +83,28 @@
         .order-label.active.mine { background: var(--my-light); }
         .order-label.active.opp { background: var(--opp-light); }
 
-        /* --- 守備番号表示エリア --- */
+        /* --- メインコンテンツエリア（ここが切り替わる） --- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* A. バトル画面 */
+        #gameArea {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
         .secret-area {
             display: flex;
             justify-content: space-between;
             padding: 15px 20px;
             background: linear-gradient(90deg, #124275 50%, #690620 50%);
+            flex-shrink: 0;
         }
         .num-cards { display: flex; gap: 5px; }
         .num-card {
@@ -107,13 +123,7 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.3);
             position: relative;
         }
-        /* HBロゴの透かし */
-        .num-card.question::after {
-            content: 'HB'; position: absolute; bottom: 2px; right: 4px;
-            font-size: 8px; opacity: 0.5;
-        }
 
-        /* --- 履歴エリア --- */
         .history-container {
             flex-grow: 1;
             display: flex;
@@ -155,13 +165,32 @@
         .h-val { width: 30px; text-align: center; }
         .h-val.hit-3 { color: var(--accent-red); }
 
-        /* --- フッター（入力部） --- */
+        /* B. セットアップ画面 */
+        #setupArea {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            background: rgba(0,0,0,0.2);
+            color: #fff;
+        }
+        .setup-title { font-size: 20px; margin-bottom: 20px; font-weight: bold; }
+        .setup-input {
+            font-size: 60px; font-weight: 800; letter-spacing: 15px;
+            color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            margin-bottom: 40px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* --- フッター（入力部：常に表示） --- */
         .footer-area {
             background: var(--bg-color);
-            padding: 10px 15px 20px;
+            padding: 10px 15px 30px; /* 下に少し余白 */
             position: relative;
+            flex-shrink: 0;
+            z-index: 10; /* 最前面へ */
         }
-        /* 曲線的な背景装飾 */
         .footer-bg-curve {
             position: absolute; top: -20px; left: 0; width: 100%; height: 30px;
             background: var(--bg-color);
@@ -174,21 +203,15 @@
             display: flex; align-items: center;
             margin-bottom: 15px;
         }
-        /* タイマー */
         .timer-circle {
-            width: 60px; height: 60px;
+            width: 50px; height: 50px;
             background: #fff; border-radius: 50%;
             border: 4px solid #3a5a7a;
             display: flex; justify-content: center; align-items: center;
-            font-size: 24px; font-weight: 800; color: var(--table-text);
+            font-size: 20px; font-weight: 800; color: var(--table-text);
             position: relative;
         }
-        .timer-circle::after { /* 目盛り風の装飾 */
-            content: ''; position: absolute; width: 90%; height: 90%;
-            border-radius: 50%; border: 2px dashed #ccc;
-        }
         
-        /* メッセージと入力表示 */
         .input-status-container {
             flex-grow: 1; margin-left: 15px;
             display: flex; flex-direction: column; align-items: center;
@@ -198,12 +221,12 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.5); margin-bottom: 5px;
         }
         .input-display-box {
-            width: 200px; height: 50px;
+            width: 200px; height: 45px;
             background: linear-gradient(to bottom, #4a7a9a, #2a5a7a);
             border: 2px solid #fff; border-radius: 10px;
             box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
             display: flex; justify-content: center; align-items: center;
-            font-size: 32px; font-weight: 800; letter-spacing: 8px;
+            font-size: 28px; font-weight: 800; letter-spacing: 8px;
             color: #fff;
             text-shadow: 0 0 10px rgba(255,255,255,0.7);
         }
@@ -211,16 +234,15 @@
         /* テンキー */
         .keypad-area {
             position: relative; z-index: 1;
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
-            margin-bottom: 10px;
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px;
+            margin-bottom: 8px;
         }
         .key-btn {
-            height: 50px;
+            height: 55px;
             background: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
             border: none; border-radius: 8px;
-            font-size: 22px; font-weight: 800; color: #333;
+            font-size: 24px; font-weight: 800; color: #333;
             box-shadow: 0 3px 0 #999;
-            text-shadow: 0 1px 0 #fff;
         }
         .key-btn:active.key-active {
             transform: translateY(3px); box-shadow: none; background: #b0b0b0;
@@ -228,10 +250,10 @@
         
         .ctrl-area {
             position: relative; z-index: 1;
-            display: flex; gap: 10px;
+            display: flex; gap: 8px;
         }
         .ctrl-btn {
-            flex: 1; height: 45px; border: none; border-radius: 8px;
+            flex: 1; height: 50px; border: none; border-radius: 8px;
             font-size: 18px; font-weight: 700; color: #fff;
             box-shadow: 0 3px 0 rgba(0,0,0,0.3);
         }
@@ -240,36 +262,17 @@
         .ctrl-btn:active.key-active { transform: translateY(3px); box-shadow: none; opacity: 0.9; }
         .disabled { opacity: 0.5; pointer-events: none; }
 
-        /* setup画面用 */
-        #setupOverlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: #fff;
-        }
-        .setup-title { font-size: 24px; margin-bottom: 20px; }
-        .setup-input {
-            font-size: 48px; font-weight: 800; letter-spacing: 12px;
-            margin-bottom: 30px; color: var(--my-light);
-        }
-
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-
-    <div id="setupOverlay">
-        <div class="setup-title">あなたの守備番号を決めてください</div>
-        <div class="setup-input" id="setupDisplay">_ _ _</div>
-        </div>
 
     <div class="top-header">
         <div class="player-info mine">
             <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" width="40"></div>
             <div class="player-details">
                 <div class="player-name">あなた</div>
-                <div class="player-rate" id="levelDisplay">Rate: 1500 (Lv.1)</div>
-            </div>
+                </div>
         </div>
         <div class="turn-order-badge">
             <div class="order-label mine active">先手</div>
@@ -278,40 +281,48 @@
         <div class="player-info opp">
             <div class="player-details">
                 <div class="player-name" id="cpuName">CPU</div>
-                <div class="player-rate">Rate: 1500</div>
             </div>
             <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" width="40"></div>
         </div>
     </div>
 
-    <div class="secret-area">
-        <div class="num-cards mine" id="mySecretCards">
-            <div class="num-card">?</div><div class="num-card">?</div><div class="num-card">?</div>
+    <div class="main-content">
+        <div id="setupArea">
+            <div class="setup-title">あなたの番号を決めてください</div>
+            <div class="setup-input" id="setupDisplay">_ _ _</div>
         </div>
-        <div class="num-cards opp">
-            <div class="num-card question">?</div>
-            <div class="num-card question">?</div>
-            <div class="num-card question">?</div>
-        </div>
-    </div>
 
-    <div class="history-container">
-        <div class="history-col mine">
-            <div class="history-header">
-                <div class="h-head-left">あなたの推理</div>
-                <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
-            </div>
-            <div class="history-list" id="playerLogList">
-                <div class="h-row placeholder"><div class="h-num">- - -</div></div>
+        <div id="gameArea" class="hidden">
+            <div class="secret-area">
+                <div class="num-cards mine" id="mySecretCards">
+                    <div class="num-card">?</div><div class="num-card">?</div><div class="num-card">?</div>
                 </div>
-        </div>
-        <div class="history-col opp">
-            <div class="history-header">
-                <div class="h-head-left">相手の推理</div>
-                <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+                <div class="num-cards opp">
+                    <div class="num-card question">?</div>
+                    <div class="num-card question">?</div>
+                    <div class="num-card question">?</div>
+                </div>
             </div>
-            <div class="history-list" id="cpuLogList">
-                 <div class="h-row placeholder"><div class="h-num">- - -</div></div>
+
+            <div class="history-container">
+                <div class="history-col mine">
+                    <div class="history-header">
+                        <div class="h-head-left">あなたの推理</div>
+                        <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+                    </div>
+                    <div class="history-list" id="playerLogList">
+                        <div class="h-row placeholder"><div class="h-num">- - -</div></div>
+                    </div>
+                </div>
+                <div class="history-col opp">
+                    <div class="history-header">
+                        <div class="h-head-left">相手の推理</div>
+                        <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+                    </div>
+                    <div class="history-list" id="cpuLogList">
+                         <div class="h-row placeholder"><div class="h-num">- - -</div></div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -322,8 +333,8 @@
         <div class="status-bar">
             <div class="timer-circle" id="timerDisplay">60</div>
             <div class="input-status-container">
-                <div class="game-message" id="gameMessage">あなたのターンです</div>
-                <div class="input-display-box" id="battleInputDisplay">_ _ _</div>
+                <div class="game-message" id="gameMessage">番号を決めてください</div>
+                <div class="input-display-box" id="footerInputDisplay">_ _ _</div>
             </div>
         </div>
 
@@ -336,7 +347,7 @@
         </div>
         <div class="ctrl-area">
             <button class="ctrl-btn del-btn" data-key="del">DEL</button>
-            <button class="ctrl-btn call-btn" data-key="call" id="callBtn">CALL</button>
+            <button class="ctrl-btn call-btn" data-key="call" id="callBtn">決定</button>
         </div>
     </div>
 
@@ -349,28 +360,24 @@
         let currentInput = [];
         let mySecret = [];
         let cpuSecret = [];
-        let turnCount = 1;
         let currentLevel = 1;
         let aiCandidates = [];
-
-        // タイマー変数
         let timeLeft = 60;
         let timerInterval = null;
 
-        // サウンド（前回と同じ）
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(t,f,d){if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
         const SE={click:()=>playTone('triangle',800,0.05),error:()=>playTone('sawtooth',150,0.15),enter:()=>{playTone('sine',1200,0.08);setTimeout(()=>playTone('sine',600,0.08),50)},win:()=>{[523,659,783,1046].forEach((f,i)=>setTimeout(()=>playTone('square',f,0.2),i*100))},lose:()=>{[300,250,200,150].forEach((f,i)=>setTimeout(()=>playTone('sawtooth',f,0.2),i*150))}};
 
-        // 初期化
         window.onload = function() {
             const sLvl=localStorage.getItem('hb_level');if(sLvl)currentLevel=parseInt(sLvl);
-            document.getElementById('levelDisplay').innerText = `Rate: ${1400 + currentLevel*100} (Lv.${currentLevel})`;
-            updateMessage("守備番号を決めて、CALLを押してください");
+            updateMessage("番号を決めて、決定を押してください");
             document.getElementById('callBtn').innerText = "決定";
+            
+            // setupDisplayとfooterInputDisplayを同期させるための初期化
+            updateInputDisplay();
         };
 
-        // --- 入力イベント ---
         document.querySelectorAll('button[data-key]').forEach(btn => {
             ['touchstart','mousedown'].forEach(evt => {
                 btn.addEventListener(evt, (e) => {
@@ -381,11 +388,10 @@
         });
 
         function handleKey(key, btnEle) {
-            // 視覚効果
             btnEle.classList.add('key-active');
             setTimeout(()=>btnEle.classList.remove('key-active'), 100);
 
-            if(!isMyTurn && !isSetupMode) return; // 相手ターン中は操作無効
+            if(!isMyTurn && !isSetupMode) return; 
 
             if(key === 'del') {
                 if(currentInput.length > 0) { currentInput.pop(); SE.click(); }
@@ -405,13 +411,15 @@
         function updateInputDisplay() {
             let str = currentInput.join(" ");
             while(currentInput.length < 3) str += (currentInput.length===0 && str==="" ? "_ _ _" : " _");
-            document.getElementById(isSetupMode ? 'setupDisplay' : 'battleInputDisplay').innerText = str;
             
-            // CALLボタンの状態
+            // セットアップ画面のデカ文字
+            if(isSetupMode) document.getElementById('setupDisplay').innerText = str;
+            // フッターの小窓
+            document.getElementById('footerInputDisplay').innerText = str;
+            
             document.getElementById('callBtn').classList.toggle('disabled', currentInput.length !== 3);
         }
 
-        // --- ゲーム進行 ---
         function startGame() {
             mySecret = [...currentInput];
             cpuSecret = generateCpuSecret();
@@ -419,18 +427,21 @@
             
             isSetupMode = false;
             isGameRunning = true;
-            document.getElementById('setupOverlay').classList.add('hidden');
+            
+            // 画面切り替え（ここが修正ポイント：オーバーレイではなくエリア切り替え）
+            document.getElementById('setupArea').classList.add('hidden');
+            document.getElementById('gameArea').classList.remove('hidden');
+            
             document.getElementById('callBtn').innerText = "CALL";
             
-            // 自分の守備番号を表示
+            // 自分の番号を表示
             const myCards = document.getElementById('mySecretCards').children;
             for(let i=0; i<3; i++) myCards[i].innerText = mySecret[i];
             
-            // プレースホルダーを消す
             document.querySelectorAll('.placeholder').forEach(el=>el.remove());
 
             currentInput = []; updateInputDisplay();
-            startTurn(true); // プレイヤーのターン開始
+            startTurn(true);
         }
 
         function startTurn(isPlayer) {
@@ -450,7 +461,7 @@
                 document.querySelector('.order-label.mine').classList.remove('active');
                 document.querySelector('.order-label.opp').classList.add('active');
                 document.getElementById('callBtn').classList.add('disabled');
-                setTimeout(cpuTurn, 1500 + Math.random()*1000); // 少し考える時間
+                setTimeout(cpuTurn, 1500 + Math.random()*1000);
             }
         }
 
@@ -459,7 +470,6 @@
             document.getElementById('timerDisplay').innerText = timeLeft < 10 ? "0"+timeLeft : timeLeft;
             if(timeLeft <= 0) {
                 clearInterval(timerInterval);
-                // 時間切れ処理（今回はとりあえずランダムコール扱いにする）
                 if(isMyTurn && currentInput.length !== 3) {
                    while(currentInput.length < 3) {
                        let n = Math.floor(Math.random()*10);
@@ -477,7 +487,7 @@
             currentInput = []; updateInputDisplay();
 
             if(result.hit === 3) { finishGame(true); return; }
-            startTurn(false); // CPUターンへ
+            startTurn(false);
         }
 
         function cpuTurn() {
@@ -486,7 +496,6 @@
             addLog('cpuLogList', guess, result);
             SE.click();
 
-            // AI学習
             if(currentLevel >= 3) {
                 aiCandidates = aiCandidates.filter(c => {
                     const chk = checkHitBlow(guess, c);
@@ -496,10 +505,9 @@
 
             if(result.hit === 3) { finishGame(false); return; }
             turnCount++;
-            startTurn(true); // プレイヤーターンへ
+            startTurn(true);
         }
 
-        // --- ログ表示 ---
         function addLog(listId, guessArr, result) {
             const row = document.createElement('div');
             row.className = 'h-row';
@@ -507,14 +515,13 @@
                              <div class="h-val ${result.hit===3?'hit-3':''}">${result.hit}</div>
                              <div class="h-val">${result.ball}</div>`;
             const list = document.getElementById(listId);
-            list.insertBefore(row, list.firstChild); // 上に追加
+            list.insertBefore(row, list.firstChild);
         }
         
         function updateMessage(msg) {
             document.getElementById('gameMessage').innerText = msg;
         }
 
-        // --- ゲーム終了 ---
         function finishGame(isWin) {
             clearInterval(timerInterval);
             isGameRunning = false;
@@ -524,7 +531,6 @@
             location.reload();
         }
 
-        // --- AI & ロジック (v6と同じ) ---
         function generateCpuSecret(){let a=[0,1,2,3,4,5,6,7,8,9],r=[];for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}return r}
         function initCandidates(){aiCandidates=[];for(let i=0;i<10;i++)for(let j=0;j<10;j++)if(i!==j)for(let k=0;k<10;k++)if(k!==i&&k!==j)aiCandidates.push([i,j,k])}
         function getAiGuess(){if(currentLevel<=2||aiCandidates.length===0)return generateCpuSecret();if(currentLevel<=5)return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];return aiCandidates[Math.floor(aiCandidates.length/2)]}
