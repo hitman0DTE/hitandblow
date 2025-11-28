@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hit & Blow - Online Battle</title>
+    <title>Hit & Blow - Friend Match</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
@@ -12,6 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
     <style>
+        /* デザインは変更なし */
         :root {
             --my-color: #1a5c9a; --my-light: #3a8cd9;
             --opp-color: #8a0a2a; --opp-light: #b91c4c;
@@ -19,7 +20,6 @@
             --accent-red: #e60012;
             --table-header: #3a5a7a; --table-row-odd: #dbe4f1; --table-row-even: #c8d6e8; --table-text: #1a3a5a;
         }
-
         body {
             font-family: 'M PLUS 1p', sans-serif;
             background-color: var(--bg-color); color: var(--text-color);
@@ -28,146 +28,63 @@
             -webkit-tap-highlight-color: transparent; user-select: none; touch-action: manipulation; overflow: hidden;
         }
 
-        /* --- ヘッダー --- */
-        .top-header {
-            display: flex; height: 80px;
-            background: linear-gradient(90deg, var(--my-color) 50%, var(--opp-color) 50%);
-            position: relative; flex-shrink: 0;
-        }
+        .top-header { display: flex; height: 80px; background: linear-gradient(90deg, var(--my-color) 50%, var(--opp-color) 50%); position: relative; flex-shrink: 0; }
         .player-info { width: 50%; display: flex; align-items: center; padding: 0 15px; box-sizing: border-box; }
         .player-info.mine { justify-content: flex-start; }
         .player-info.opp { justify-content: flex-end; text-align: right; }
-        .avatar {
-            width: 50px; height: 50px; border-radius: 50%; background: #ccc;
-            border: 3px solid rgba(255,255,255,0.3); display: flex; justify-content: center; align-items: center;
-            font-size: 30px; color: #fff; overflow: hidden;
-        }
+        .avatar { width: 50px; height: 50px; border-radius: 50%; background: #ccc; border: 3px solid rgba(255,255,255,0.3); display: flex; justify-content: center; align-items: center; font-size: 30px; color: #fff; overflow: hidden; }
         .player-details { margin: 0 10px; }
         .player-name { font-weight: 800; font-size: 16px; }
         
-        .turn-order-badge {
-            position: absolute; top: 5px; left: 50%; transform: translateX(-50%);
-            display: flex; gap: 2px;
-        }
+        .turn-order-badge { position: absolute; top: 5px; left: 50%; transform: translateX(-50%); display: flex; gap: 2px; }
         .order-label { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: #666; }
         .order-label.active.mine { background: var(--my-light); }
         .order-label.active.opp { background: var(--opp-light); }
 
-        /* --- メインエリア --- */
         .main-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
-
-        /* ゲーム画面 */
         #gameArea { display: flex; flex-direction: column; height: 100%; }
-        
-        .secret-area {
-            display: flex; justify-content: space-between; padding: 15px 20px;
-            background: linear-gradient(90deg, #124275 50%, #690620 50%); flex-shrink: 0;
-        }
+        .secret-area { display: flex; justify-content: space-between; padding: 15px 20px; background: linear-gradient(90deg, #124275 50%, #690620 50%); flex-shrink: 0; }
         .num-cards { display: flex; gap: 5px; }
-        .num-card {
-            width: 45px; height: 55px; background: #fff; border-radius: 8px;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 36px; font-weight: 800; color: var(--my-color);
-            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
-        }
-        .num-card.question {
-            background: linear-gradient(135deg, #5a8ca8, #3a6c88); color: #fff;
-            font-size: 32px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); position: relative;
-        }
+        .num-card { width: 45px; height: 55px; background: #fff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 36px; font-weight: 800; color: var(--my-color); box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
+        .num-card.question { background: linear-gradient(135deg, #5a8ca8, #3a6c88); color: #fff; font-size: 32px; text-shadow: 0 1px 2px rgba(0,0,0,0.3); position: relative; }
 
-        .history-container {
-            flex-grow: 1; display: flex; padding: 10px; gap: 10px; overflow: hidden;
-        }
-        .history-col {
-            width: 50%; background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;
-        }
-        .history-header {
-            background: var(--table-header); color: #fff; font-weight: 700; font-size: 14px;
-            padding: 8px; display: flex; justify-content: space-between;
-        }
+        .history-container { flex-grow: 1; display: flex; padding: 10px; gap: 10px; overflow: hidden; }
+        .history-col { width: 50%; background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+        .history-header { background: var(--table-header); color: #fff; font-weight: 700; font-size: 14px; padding: 8px; display: flex; justify-content: space-between; }
         .h-head-left { text-align: left; flex-grow: 1; padding-left: 10px; }
-        .h-head-hb { width: 30px; text-align: center; }
-        
-        .history-list {
-            flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
-            display: flex; flex-direction: column;
-        }
-        .h-row {
-            display: flex; padding: 6px 4px; color: var(--table-text);
-            font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace;
-            border-bottom: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; align-items: center;
-        }
+        .history-list { flex-grow: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+        .h-row { display: flex; padding: 6px 4px; color: var(--table-text); font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace; border-bottom: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; align-items: center; }
         .h-row:nth-child(odd) { background: var(--table-row-odd); }
         .h-row:nth-child(even) { background: var(--table-row-even); }
-        .h-turn {
-            width: 20px; font-size: 11px; color: #8899aa; border-right: 1px solid rgba(0,0,0,0.1);
-            margin-right: 5px; text-align: center; font-family: 'M PLUS 1p', sans-serif;
-        }
+        .h-turn { width: 20px; font-size: 11px; color: #8899aa; border-right: 1px solid rgba(0,0,0,0.1); margin-right: 5px; text-align: center; font-family: 'M PLUS 1p', sans-serif; }
         .h-num { flex-grow: 1; text-align: center; letter-spacing: 3px; }
         .h-val { width: 25px; text-align: center; }
         .h-val.hit-3 { color: var(--accent-red); }
 
-        /* 入力用共通画面 (Setup & Login) */
-        .overlay-screen {
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            height: 100%; background: rgba(0,0,0,0.2); color: #fff;
-        }
+        .overlay-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%; background: rgba(0,0,0,0.2); color: #fff; }
         .overlay-title { font-size: 20px; margin-bottom: 20px; font-weight: bold; text-align: center; }
-        .overlay-input {
-            font-size: 40px; font-weight: 800; letter-spacing: 5px; color: #fff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5); margin-bottom: 30px;
-            font-family: 'Courier New', monospace; background: rgba(0,0,0,0.3);
-            padding: 10px 20px; border-radius: 10px; border: 2px solid #fff;
-        }
+        .overlay-input { font-size: 40px; font-weight: 800; letter-spacing: 5px; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.5); margin-bottom: 30px; font-family: 'Courier New', monospace; background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 10px; border: 2px solid #fff; }
+        .setup-input { font-size: 60px; font-weight: 800; letter-spacing: 15px; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.5); margin-bottom: 40px; font-family: 'Courier New', monospace; }
         .overlay-status { font-size: 14px; color: #eee; margin-top: 10px; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
-        /* --- フッター --- */
-        .footer-area {
-            background: var(--bg-color); padding: 10px 15px 30px; position: relative; flex-shrink: 0; z-index: 10;
-        }
-        .footer-bg-curve {
-            position: absolute; top: -20px; left: 0; width: 100%; height: 30px;
-            background: var(--bg-color); border-radius: 50% 50% 0 0 / 100% 100% 0 0; z-index: 0;
-        }
+        .footer-area { background: var(--bg-color); padding: 10px 15px 30px; position: relative; flex-shrink: 0; z-index: 10; }
+        .footer-bg-curve { position: absolute; top: -20px; left: 0; width: 100%; height: 30px; background: var(--bg-color); border-radius: 50% 50% 0 0 / 100% 100% 0 0; z-index: 0; }
         .status-bar { position: relative; z-index: 1; display: flex; align-items: center; margin-bottom: 15px; }
-        .timer-circle {
-            width: 50px; height: 50px; background: #fff; border-radius: 50%;
-            border: 4px solid #3a5a7a; display: flex; justify-content: center; align-items: center;
-            font-size: 20px; font-weight: 800; color: var(--table-text); position: relative;
-        }
+        .timer-circle { width: 50px; height: 50px; background: #fff; border-radius: 50%; border: 4px solid #3a5a7a; display: flex; justify-content: center; align-items: center; font-size: 20px; font-weight: 800; color: var(--table-text); position: relative; }
         .input-status-container { flex-grow: 1; margin-left: 15px; display: flex; flex-direction: column; align-items: center; }
-        .game-message {
-            font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); margin-bottom: 5px;
-        }
-        .input-display-box {
-            width: 200px; height: 45px; background: linear-gradient(to bottom, #4a7a9a, #2a5a7a);
-            border: 2px solid #fff; border-radius: 10px; box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
-            display: flex; justify-content: center; align-items: center;
-            font-size: 28px; font-weight: 800; letter-spacing: 8px; color: #fff;
-            text-shadow: 0 0 10px rgba(255,255,255,0.7);
-        }
+        .game-message { font-size: 12px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); margin-bottom: 5px; }
+        .input-display-box { width: 200px; height: 45px; background: linear-gradient(to bottom, #4a7a9a, #2a5a7a); border: 2px solid #fff; border-radius: 10px; box-shadow: inset 0 4px 8px rgba(0,0,0,0.3); display: flex; justify-content: center; align-items: center; font-size: 28px; font-weight: 800; letter-spacing: 8px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.7); }
 
-        .keypad-area {
-            position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px;
-        }
-        .key-btn {
-            height: 55px; background: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
-            border: none; border-radius: 8px; font-size: 24px; font-weight: 800; color: #333;
-            box-shadow: 0 3px 0 #999;
-        }
+        .keypad-area { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 8px; }
+        .key-btn { height: 55px; background: linear-gradient(to bottom, #e0e0e0, #c0c0c0); border: none; border-radius: 8px; font-size: 24px; font-weight: 800; color: #333; box-shadow: 0 3px 0 #999; }
         .key-btn:active.key-active { transform: translateY(3px); box-shadow: none; background: #b0b0b0; }
-        
         .ctrl-area { position: relative; z-index: 1; display: flex; gap: 8px; }
-        .ctrl-btn {
-            flex: 1; height: 50px; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; color: #fff;
-            box-shadow: 0 3px 0 rgba(0,0,0,0.3);
-        }
+        .ctrl-btn { flex: 1; height: 50px; border: none; border-radius: 8px; font-size: 18px; font-weight: 700; color: #fff; box-shadow: 0 3px 0 rgba(0,0,0,0.3); }
         .del-btn { background: #d9534f; box-shadow: 0 3px 0 #c9302c; }
         .call-btn { background: #5cb85c; box-shadow: 0 3px 0 #4cae4c; }
         .ctrl-btn:active.key-active { transform: translateY(3px); box-shadow: none; opacity: 0.9; }
         .disabled { opacity: 0.5; pointer-events: none; }
-
         .hidden { display: none !important; }
     </style>
 </head>
@@ -175,18 +92,14 @@
     <div class="top-header">
         <div class="player-info mine">
             <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" width="40"></div>
-            <div class="player-details">
-                <div class="player-name">あなた</div>
-            </div>
+            <div class="player-details"><div class="player-name">あなた</div></div>
         </div>
         <div class="turn-order-badge">
             <div class="order-label mine" id="badgeP1">先手</div>
             <div class="order-label opp" id="badgeP2">後手</div>
         </div>
         <div class="player-info opp">
-            <div class="player-details">
-                <div class="player-name" id="oppName">相手</div>
-            </div>
+            <div class="player-details"><div class="player-name" id="oppName">???</div></div>
             <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" width="40"></div>
         </div>
     </div>
@@ -206,32 +119,17 @@
 
         <div id="gameArea" class="hidden">
             <div class="secret-area">
-                <div class="num-cards mine" id="mySecretCards">
-                    <div class="num-card">?</div><div class="num-card">?</div><div class="num-card">?</div>
-                </div>
-                <div class="num-cards opp">
-                    <div class="num-card question">?</div><div class="num-card question">?</div><div class="num-card question">?</div>
-                </div>
+                <div class="num-cards mine" id="mySecretCards"><div class="num-card">?</div><div class="num-card">?</div><div class="num-card">?</div></div>
+                <div class="num-cards opp"><div class="num-card question">?</div><div class="num-card question">?</div><div class="num-card question">?</div></div>
             </div>
-
             <div class="history-container">
                 <div class="history-col mine">
-                    <div class="history-header">
-                        <div class="h-head-left">あなたの推理</div>
-                        <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
-                    </div>
-                    <div class="history-list" id="playerLogList">
-                        <div class="h-row placeholder"><div class="h-num">- - -</div></div>
-                    </div>
+                    <div class="history-header"><div class="h-head-left">あなたの推理</div><div class="h-head-hb">H</div><div class="h-head-hb">B</div></div>
+                    <div class="history-list" id="playerLogList"><div class="h-row placeholder"><div class="h-num">- - -</div></div></div>
                 </div>
                 <div class="history-col opp">
-                    <div class="history-header">
-                        <div class="h-head-left">相手の推理</div>
-                        <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
-                    </div>
-                    <div class="history-list" id="oppLogList">
-                         <div class="h-row placeholder"><div class="h-num">- - -</div></div>
-                    </div>
+                    <div class="history-header"><div class="h-head-left">相手の推理</div><div class="h-head-hb">H</div><div class="h-head-hb">B</div></div>
+                    <div class="history-list" id="oppLogList"><div class="h-row placeholder"><div class="h-num">- - -</div></div></div>
                 </div>
             </div>
         </div>
@@ -260,7 +158,7 @@
     </div>
 
     <script>
-        // --- Firebase設定 (あなたの環境用) ---
+        // --- Firebase Config (User's) ---
         const firebaseConfig = {
             apiKey: "AIzaSyBUqHpWGjezBuMPV76T9FZQz2ChcSEr5Ao",
             authDomain: "hit-and-blow-online.firebaseapp.com",
@@ -272,109 +170,119 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- ゲーム状態変数 ---
-        let currentPhase = 'login'; // login, setup, battle
+        // --- Variables ---
+        let currentPhase = 'login';
         let roomId = "";
-        let myRole = ""; // "p1" (Host) or "p2" (Guest)
+        let myRole = ""; // "p1" or "p2"
         let currentInput = [];
-        let mySecret = [];
-        let oppSecret = [];
+        let mySecret = [], oppSecret = [];
         let isMyTurn = false;
         let turnCount = 1;
         let timeLeft = 60;
         let timerInterval = null;
 
-        // SE
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(t,f,d){if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
         const SE={click:()=>playTone('triangle',800,0.05),error:()=>playTone('sawtooth',150,0.15),enter:()=>{playTone('sine',1200,0.08);setTimeout(()=>playTone('sine',600,0.08),50)},win:()=>{[523,659,783,1046].forEach((f,i)=>setTimeout(()=>playTone('square',f,0.2),i*100))},lose:()=>{[300,250,200,150].forEach((f,i)=>setTimeout(()=>playTone('sawtooth',f,0.2),i*150))}};
 
-        // --- 入力ハンドリング ---
+        // --- UI Events ---
         document.querySelectorAll('button[data-key]').forEach(btn => {
             ['touchstart','mousedown'].forEach(evt => {
                 btn.addEventListener(evt, (e) => { e.preventDefault(); handleKey(btn.dataset.key, btn); }, {passive:false});
             });
         });
 
+        // ページを閉じる/戻る時に切断処理を走らせる
+        window.addEventListener('beforeunload', () => {
+            if(roomId && myRole) {
+                db.ref('rooms/' + roomId + '/' + myRole).remove();
+            }
+        });
+
         function handleKey(key, btnEle) {
             btnEle.classList.add('key-active'); setTimeout(()=>btnEle.classList.remove('key-active'), 100);
-
-            // 操作ブロック条件
             if (currentPhase === 'battle' && !isMyTurn) return;
             if (document.getElementById('setupStatus').classList.contains('hidden') === false && currentPhase==='setup') return;
 
-            // 入力最大文字数
             const maxLen = (currentPhase === 'login') ? 4 : 3;
 
             if(key === 'del') {
                 if(currentInput.length > 0) { currentInput.pop(); SE.click(); }
             } else if(key === 'call') {
                 if(currentInput.length !== maxLen) { SE.error(); return; }
-                SE.enter();
-                executePhaseAction();
+                SE.enter(); executePhaseAction();
             } else {
                 const num = parseInt(key);
-                // setup/battleでは重複不可
                 if(currentPhase !== 'login' && currentInput.includes(num)) { SE.error(); return; }
-                
-                if(currentInput.length < maxLen) {
-                    currentInput.push(num); SE.click();
-                } else { SE.error(); }
+                if(currentInput.length < maxLen) { currentInput.push(num); SE.click(); } else { SE.error(); }
             }
             updateInputDisplay();
         }
 
         function updateInputDisplay() {
             let maxLen = (currentPhase === 'login') ? 4 : 3;
-            let displayArr = [...currentInput];
-            while(displayArr.length < maxLen) displayArr.push("_");
-            let str = displayArr.join(currentPhase === 'login' ? "" : " ");
-
+            let d = [...currentInput]; while(d.length < maxLen) d.push("_");
+            let str = d.join(currentPhase === 'login' ? "" : " ");
             document.getElementById('footerInputDisplay').innerText = str;
             document.getElementById('callBtn').classList.toggle('disabled', currentInput.length !== maxLen);
-            
             if(currentPhase === 'login') document.getElementById('loginDisplay').innerText = str;
             if(currentPhase === 'setup') document.getElementById('setupDisplay').innerText = str;
         }
 
         function executePhaseAction() {
-            if(currentPhase === 'login') {
-                joinRoom(currentInput.join(""));
-            } else if(currentPhase === 'setup') {
-                submitSecret();
-            } else if(currentPhase === 'battle') {
-                submitGuess();
-            }
+            if(currentPhase === 'login') joinRoom(currentInput.join(""));
+            else if(currentPhase === 'setup') submitSecret();
+            else if(currentPhase === 'battle') submitGuess();
         }
 
-        // --- フェーズ 1: ルーム入室 ---
+        // --- 入室処理 (ゾンビ対策) ---
         function joinRoom(id) {
             roomId = id;
             const roomRef = db.ref('rooms/' + roomId);
             
             roomRef.get().then((snapshot) => {
                 const data = snapshot.val();
+                
+                // 1. 部屋がない -> 新規作成 (p1)
                 if(!data) {
-                    // 部屋がない -> ホスト(p1)になる
                     myRole = "p1";
                     setupRoom();
-                } else if(!data.p2) {
-                    // p2がいない -> ゲスト(p2)になる
+                    return;
+                } 
+                
+                // 2. 部屋はあるが、p1がいない (ゾンビor空き) -> p1になる
+                if(!data.p1) {
+                    myRole = "p1";
+                    setupRoom();
+                    return;
+                }
+
+                // 3. p1はいるが、p2がいない -> p2になる
+                if(!data.p2) {
                     myRole = "p2";
+                    // 切断時に自動削除される設定を入れる
+                    roomRef.child('p2').onDisconnect().remove();
                     roomRef.update({ 
                         p2: { active: true },
                         status: "setup"
                     });
                     goToSetup();
-                } else {
-                    alert("この部屋は満員です");
-                    currentInput = []; updateInputDisplay();
+                    return;
                 }
+                
+                // 4. 満員
+                alert("この部屋は満員です");
+                currentInput = []; updateInputDisplay();
             });
         }
 
         function setupRoom() {
-            db.ref('rooms/' + roomId).set({
+            const roomRef = db.ref('rooms/' + roomId);
+            
+            // 自分が切断したら p1 を消す (これで部屋が空き扱いになる)
+            roomRef.child('p1').onDisconnect().remove();
+
+            roomRef.update({
                 p1: { active: true },
                 status: "waiting_p2",
                 turnCount: 1,
@@ -386,7 +294,9 @@
                 if(snap.val() === 'setup') goToSetup();
             });
 
-            // メッセージ
+            // 相手が切断したらリセットして待機に戻る処理などを入れたいところだが
+            // シンプルに「相手が来たらセットアップへ」だけにする
+            
             document.getElementById('gameMessage').innerText = "友達の入室を待っています...";
             document.getElementById('loginArea').classList.add('hidden');
             document.getElementById('setupArea').classList.remove('hidden');
@@ -394,12 +304,11 @@
             document.getElementById('callBtn').classList.add('disabled');
         }
 
-        // --- フェーズ 2: 数字決定 ---
+        // --- Setup ---
         function goToSetup() {
             currentPhase = 'setup';
             currentInput = []; updateInputDisplay();
             
-            // UIリセット
             document.getElementById('loginArea').classList.add('hidden');
             document.getElementById('setupArea').classList.remove('hidden');
             document.getElementById('setupArea').innerHTML = `
@@ -410,31 +319,32 @@
             document.getElementById('gameMessage').innerText = "番号を決めて、決定を押してください";
             document.getElementById('callBtn').innerText = "決定";
             
-            // バッジ表示切り替え
-            if(myRole === 'p1') {
-                document.getElementById('badgeP1').classList.add('active');
-            } else {
-                document.getElementById('badgeP2').classList.add('active');
-            }
+            if(myRole === 'p1') document.getElementById('badgeP1').classList.add('active');
+            else document.getElementById('badgeP2').classList.add('active');
+
+            // 相手が切断した場合の検知
+            const oppRole = myRole === 'p1' ? 'p2' : 'p1';
+            db.ref(`rooms/${roomId}/${oppRole}`).on('value', (snap) => {
+                if(currentPhase !== 'login' && !snap.exists()) {
+                    // 相手がいなくなった
+                    alert("相手が退室しました。部屋から出ます。");
+                    location.reload();
+                }
+            });
         }
 
         function submitSecret() {
             mySecret = [...currentInput];
-            
-            // 自分の番号を送信
             db.ref(`rooms/${roomId}/${myRole}/secret`).set(mySecret);
             db.ref(`rooms/${roomId}/${myRole}/ready`).set(true);
 
-            // 待機表示
             document.getElementById('setupStatus').classList.remove('hidden');
             document.getElementById('callBtn').classList.add('disabled');
             document.getElementById('gameMessage').innerText = "相手の決定を待っています...";
 
-            // 両方の準備完了を監視
             db.ref(`rooms/${roomId}`).on('value', (snap) => {
                 const data = snap.val();
-                if(data.p1 && data.p1.ready && data.p2 && data.p2.ready) {
-                    // 相手の番号を取得しておく(クライアント側で判定するため)
+                if(data && data.p1 && data.p1.ready && data.p2 && data.p2.ready) {
                     const oppRole = myRole === 'p1' ? 'p2' : 'p1';
                     oppSecret = data[oppRole].secret;
                     startBattle();
@@ -442,11 +352,9 @@
             });
         }
 
-        // --- フェーズ 3: バトル ---
+        // --- Battle ---
         function startBattle() {
-            // DB監視の重複を防ぐため一旦オフ
-            db.ref(`rooms/${roomId}`).off();
-
+            db.ref(`rooms/${roomId}`).off(); // Setup監視解除
             currentPhase = 'battle';
             currentInput = []; updateInputDisplay();
             
@@ -454,141 +362,88 @@
             document.getElementById('gameArea').classList.remove('hidden');
             document.getElementById('callBtn').innerText = "CALL";
             
-            // 自分のカード表示
             const myCards = document.getElementById('mySecretCards').children;
             for(let i=0; i<3; i++) myCards[i].innerText = mySecret[i];
             document.querySelectorAll('.placeholder').forEach(el=>el.remove());
 
-            // ターン監視開始
+            // ターン監視
             db.ref(`rooms/${roomId}/currentTurn`).on('value', (snap) => {
-                const turnPlayer = snap.val();
-                if(!turnPlayer) return;
-                
-                isMyTurn = (turnPlayer === myRole);
-                updateTurnUI();
-            });
-
-            // 履歴監視開始 (ログ追加)
-            db.ref(`rooms/${roomId}/history`).on('child_added', (snap) => {
-                const log = snap.val();
-                // 自分のログか、相手のログか
-                const isMe = (log.player === myRole);
-                const listId = isMe ? 'playerLogList' : 'oppLogList';
-                addLog(listId, log.guess, log.result, log.turnCount);
-                
-                // 勝敗判定
-                if(log.result.hit === 3) {
-                    setTimeout(() => finishGame(isMe), 500);
+                const val = snap.val();
+                if(val) {
+                    isMyTurn = (val === myRole);
+                    updateTurnUI();
                 }
             });
+
+            // 履歴監視
+            db.ref(`rooms/${roomId}/history`).on('child_added', (snap) => {
+                const log = snap.val();
+                const isMe = (log.player === myRole);
+                addLog(isMe ? 'playerLogList' : 'oppLogList', log.guess, log.result, log.turnCount);
+                if(log.result.hit === 3) setTimeout(() => finishGame(isMe), 500);
+            });
             
-            // ターン数監視
-            db.ref(`rooms/${roomId}/turnCount`).on('value', (snap) => {
-                turnCount = snap.val();
+            db.ref(`rooms/${roomId}/turnCount`).on('value', (s) => { if(s.val()) turnCount = s.val(); });
+
+            // 戦闘中の切断再監視 (念のため)
+            const oppRole = myRole === 'p1' ? 'p2' : 'p1';
+            db.ref(`rooms/${roomId}/${oppRole}`).on('value', (snap) => {
+                if(!snap.exists()) {
+                    alert("相手の接続が切れました。勝利です！");
+                    finishGame(true);
+                }
             });
         }
 
         function updateTurnUI() {
             clearInterval(timerInterval);
-            timeLeft = 60;
-            document.getElementById('timerDisplay').innerText = timeLeft;
-
+            timeLeft = 60; document.getElementById('timerDisplay').innerText = timeLeft;
             if(isMyTurn) {
                 document.getElementById('gameMessage').innerText = `あなたのターン (${turnCount}手目)`;
                 document.getElementById('callBtn').classList.remove('disabled');
-                
-                // バッジ
-                if(myRole==='p1'){
-                    document.getElementById('badgeP1').classList.add('active');
-                    document.getElementById('badgeP2').classList.remove('active');
-                } else {
-                    document.getElementById('badgeP2').classList.add('active');
-                    document.getElementById('badgeP1').classList.remove('active');
-                }
-
-                // タイマースタート
+                document.getElementById('badgeP1').classList.toggle('active', myRole==='p1');
+                document.getElementById('badgeP2').classList.toggle('active', myRole==='p2');
                 timerInterval = setInterval(() => {
-                    timeLeft--;
-                    document.getElementById('timerDisplay').innerText = timeLeft < 10 ? "0"+timeLeft : timeLeft;
-                    if(timeLeft <= 0) {
-                        clearInterval(timerInterval);
-                        // 時間切れ -> ランダム送信
-                        while(currentInput.length < 3) {
-                            let n = Math.floor(Math.random()*10);
-                            if(!currentInput.includes(n)) currentInput.push(n);
-                        }
-                        submitGuess();
-                    }
+                    timeLeft--; document.getElementById('timerDisplay').innerText = timeLeft<10?"0"+timeLeft:timeLeft;
+                    if(timeLeft<=0) { clearInterval(timerInterval); while(currentInput.length<3){let n=Math.floor(Math.random()*10);if(!currentInput.includes(n))currentInput.push(n);} submitGuess(); }
                 }, 1000);
-
             } else {
                 document.getElementById('gameMessage').innerText = `相手は考えています... (${turnCount}手目)`;
                 document.getElementById('callBtn').classList.add('disabled');
-                
-                if(myRole==='p1'){
-                    document.getElementById('badgeP2').classList.add('active');
-                    document.getElementById('badgeP1').classList.remove('active');
-                } else {
-                    document.getElementById('badgeP1').classList.add('active');
-                    document.getElementById('badgeP2').classList.remove('active');
-                }
+                document.getElementById('badgeP2').classList.toggle('active', myRole==='p1');
+                document.getElementById('badgeP1').classList.toggle('active', myRole==='p2');
             }
         }
 
         function submitGuess() {
             const guess = [...currentInput];
             const result = checkHitBlow(guess, oppSecret);
-            
-            // DBに履歴を送信
-            db.ref(`rooms/${roomId}/history`).push({
-                player: myRole,
-                guess: guess,
-                result: result,
-                turnCount: turnCount
-            });
-
+            db.ref(`rooms/${roomId}/history`).push({ player: myRole, guess: guess, result: result, turnCount: turnCount });
             currentInput = []; updateInputDisplay();
-
-            // 3HITしたらゲーム終了フラグ、そうでなければ交代
             if(result.hit !== 3) {
                 const nextTurn = myRole === 'p1' ? 'p2' : 'p1';
-                
-                // 後手が終わったらターン数+1 (p2 -> p1のタイミング)
-                if(myRole === 'p2') {
-                    db.ref(`rooms/${roomId}/turnCount`).transaction(c => (c || 1) + 1);
-                }
-                
+                if(myRole === 'p2') db.ref(`rooms/${roomId}/turnCount`).transaction(c => (c||1)+1);
                 db.ref(`rooms/${roomId}/currentTurn`).set(nextTurn);
             }
         }
 
-        // --- ロジック ---
         function checkHitBlow(g, t) {
             let h=0, b=0;
-            for(let i=0; i<3; i++) {
-                if(g[i]===t[i]) h++;
-                else if(t.includes(g[i])) b++;
-            }
+            for(let i=0;i<3;i++){ if(g[i]===t[i])h++; else if(t.includes(g[i]))b++; }
             return {hit:h, ball:b};
         }
 
-        function addLog(listId, guessArr, result, tCount) {
-            const row = document.createElement('div');
-            row.className = 'h-row';
-            row.innerHTML = `<div class="h-turn">${tCount}</div>
-                             <div class="h-num">${guessArr.join(" ")}</div>
-                             <div class="h-val ${result.hit===3?'hit-3':''}">${result.hit}</div>
-                             <div class="h-val">${result.ball}</div>`;
-            const list = document.getElementById(listId);
-            list.appendChild(row);
-            list.scrollTop = list.scrollHeight;
+        function addLog(id, g, r, t) {
+            const row = document.createElement('div'); row.className = 'h-row';
+            row.innerHTML = `<div class="h-turn">${t}</div><div class="h-num">${g.join(" ")}</div><div class="h-val ${r.hit===3?'hit-3':''}">${r.hit}</div><div class="h-val">${r.ball}</div>`;
+            const list = document.getElementById(id); list.appendChild(row); list.scrollTop = list.scrollHeight;
         }
 
         function finishGame(isWin) {
-            clearInterval(timerInterval);
-            db.ref(`rooms/${roomId}`).off(); // 監視終了
-            if(isWin) { SE.win(); alert("YOU WIN! おめでとう！"); }
-            else { SE.lose(); alert("YOU LOSE... ドンマイ！"); }
+            clearInterval(timerInterval); db.ref(`rooms/${roomId}`).off();
+            // 終わったら部屋を消すために自分のデータを消す
+            db.ref(`rooms/${roomId}/${myRole}`).remove(); 
+            if(isWin){ SE.win(); alert("YOU WIN!"); } else { SE.lose(); alert("YOU LOSE..."); }
             location.reload();
         }
     </script>
