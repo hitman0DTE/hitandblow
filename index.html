@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hit & Blow - v7.2 (Fix Loop)</title>
+    <title>Hit & Blow - v7.3 (Stable)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
@@ -349,7 +349,7 @@
     </div>
 
     <script>
-        // --- 変数 ---
+        // --- 基本変数 ---
         let isSetupMode = true;
         let isMyTurn = true;
         let isGameRunning = false;
@@ -361,6 +361,7 @@
         let timeLeft = 60;
         let timerInterval = null;
 
+        // オーディオ設定
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(t,f,d){if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
         const SE={click:()=>playTone('triangle',800,0.05),error:()=>playTone('sawtooth',150,0.15),enter:()=>{playTone('sine',1200,0.08);setTimeout(()=>playTone('sine',600,0.08),50)},win:()=>{[523,659,783,1046].forEach((f,i)=>setTimeout(()=>playTone('square',f,0.2),i*100))},lose:()=>{[300,250,200,150].forEach((f,i)=>setTimeout(()=>playTone('sawtooth',f,0.2),i*150))}};
@@ -368,13 +369,13 @@
         // --- 初期化 ---
         window.onload = function() {
             const sLvl=localStorage.getItem('hb_level');
-            if(sLvl) currentLevel=parseInt(sLvl);
+            if(sLvl && !isNaN(sLvl)) currentLevel=parseInt(sLvl);
             updateMessage("番号を決めて、決定を押してください");
             document.getElementById('callBtn').innerText = "決定";
             updateInputDisplay();
         };
 
-        // --- 入力イベント ---
+        // --- 入力制御 ---
         document.querySelectorAll('button[data-key]').forEach(btn => {
             ['touchstart','mousedown'].forEach(evt => {
                 btn.addEventListener(evt, (e) => {
@@ -405,23 +406,17 @@
             updateInputDisplay();
         }
 
-        // --- ★修正箇所：無限ループを解消 ---
         function updateInputDisplay() {
-            // 安全な表示ロジックに変更
-            let displayArr = [...currentInput]; // 配列をコピー
-            // 足りない分をアンダーバーで埋める
-            while(displayArr.length < 3) {
-                displayArr.push("_");
-            }
-            
+            let displayArr = [...currentInput];
+            while(displayArr.length < 3) displayArr.push("_");
             let str = displayArr.join(" ");
 
             if(isSetupMode) document.getElementById('setupDisplay').innerText = str;
             document.getElementById('footerInputDisplay').innerText = str;
-            
             document.getElementById('callBtn').classList.toggle('disabled', currentInput.length !== 3);
         }
 
+        // --- ゲーム開始処理 ---
         function startGame() {
             mySecret = [...currentInput];
             cpuSecret = generateCpuSecret();
@@ -443,6 +438,7 @@
             startTurn(true);
         }
 
+        // --- ターン管理 ---
         function startTurn(isPlayer) {
             isMyTurn = isPlayer;
             clearInterval(timerInterval);
@@ -469,7 +465,8 @@
             document.getElementById('timerDisplay').innerText = timeLeft < 10 ? "0"+timeLeft : timeLeft;
             if(timeLeft <= 0) {
                 clearInterval(timerInterval);
-                if(isMyTurn && currentInput.length !== 3) {
+                if(isMyTurn) {
+                   // 時間切れならランダム入力してコール
                    while(currentInput.length < 3) {
                        let n = Math.floor(Math.random()*10);
                        if(!currentInput.includes(n)) currentInput.push(n);
@@ -479,6 +476,7 @@
             }
         }
 
+        // --- プレイヤーアクション ---
         function playerCall() {
             const guess = [...currentInput];
             const result = checkHitBlow(guess, cpuSecret);
@@ -489,24 +487,85 @@
             startTurn(false);
         }
 
+        // --- CPUアクション（ここを大幅強化） ---
         function cpuTurn() {
-            const guess = getAiGuess();
-            const result = checkHitBlow(guess, mySecret);
-            addLog('cpuLogList', guess, result);
-            SE.click();
+            try {
+                // 安全な推測を取得
+                let guess = getAiGuess();
+                
+                // もし万が一guessが空なら強制的に生成
+                if(!guess || guess.length !== 3) {
+                    guess = generateCpuSecret(); 
+                }
 
-            if(currentLevel >= 3) {
-                aiCandidates = aiCandidates.filter(c => {
-                    const chk = checkHitBlow(guess, c);
-                    return chk.hit===result.hit && chk.ball===result.ball;
-                });
+                const result = checkHitBlow(guess, mySecret);
+                addLog('cpuLogList', guess, result);
+                SE.click();
+
+                // 学習（エラーが起きても無視してゲーム続行）
+                if(currentLevel >= 3) {
+                    try {
+                        aiCandidates = aiCandidates.filter(c => {
+                            const chk = checkHitBlow(guess, c);
+                            return chk.hit===result.hit && chk.ball===result.ball;
+                        });
+                    } catch(e) {
+                        console.error("AI Learning Error", e);
+                        // 候補が壊れたらリセット
+                        initCandidates();
+                    }
+                }
+
+                if(result.hit === 3) { finishGame(false); return; }
+
+            } catch(e) {
+                console.error("CPU Turn Error", e);
             }
-
-            if(result.hit === 3) { finishGame(false); return; }
-            turnCount++;
+            
+            // 何があっても必ずプレイヤーにターンを返す
             startTurn(true);
         }
 
+        // --- AIロジック（安全版） ---
+        function generateCpuSecret(){
+            let a=[0,1,2,3,4,5,6,7,8,9],r=[];
+            for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}
+            return r;
+        }
+
+        function initCandidates(){
+            aiCandidates=[];
+            for(let i=0;i<10;i++)
+                for(let j=0;j<10;j++)
+                    if(i!==j)
+                        for(let k=0;k<10;k++)
+                            if(k!==i&&k!==j) aiCandidates.push([i,j,k]);
+        }
+
+        function getAiGuess(){
+            // 候補がない、またはレベルが低い場合はランダム
+            if(currentLevel<=2 || !aiCandidates || aiCandidates.length===0) {
+                return generateCpuSecret();
+            }
+            // 中級
+            if(currentLevel<=5) {
+                return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
+            }
+            // 上級（中央値）
+            return aiCandidates[Math.floor(aiCandidates.length/2)];
+        }
+
+        function checkHitBlow(g,t){
+            if(!g || !t) return {hit:0, ball:0}; // 安全策
+            let h=0,b=0;
+            for(let i=0;i<3;i++){
+                if(g[i]===t[i])h++;
+                else if(t.includes(g[i]))b++;
+            }
+            return {hit:h,ball:b};
+        }
+
+        // --- 共通処理 ---
         function addLog(listId, guessArr, result) {
             const row = document.createElement('div');
             row.className = 'h-row';
@@ -529,11 +588,6 @@
             localStorage.setItem('hb_level', currentLevel);
             location.reload();
         }
-
-        function generateCpuSecret(){let a=[0,1,2,3,4,5,6,7,8,9],r=[];for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}return r}
-        function initCandidates(){aiCandidates=[];for(let i=0;i<10;i++)for(let j=0;j<10;j++)if(i!==j)for(let k=0;k<10;k++)if(k!==i&&k!==j)aiCandidates.push([i,j,k])}
-        function getAiGuess(){if(currentLevel<=2||aiCandidates.length===0)return generateCpuSecret();if(currentLevel<=5)return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];return aiCandidates[Math.floor(aiCandidates.length/2)]}
-        function checkHitBlow(g,t){let h=0,b=0;for(let i=0;i<3;i++){if(g[i]===t[i])h++;else if(t.includes(g[i]))b++;}return {hit:h,ball:b}}
     </script>
 </body>
 </html>
