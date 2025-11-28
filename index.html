@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hit & Blow - v7.3 (Stable)</title>
+    <title>Hit & Blow - v7.4 (Final)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
@@ -152,12 +152,15 @@
             flex-grow: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
+            display: flex;
+            flex-direction: column;
         }
         .h-row {
             display: flex;
             padding: 6px 8px;
             color: var(--table-text); font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace;
             border-bottom: 1px solid rgba(0,0,0,0.1);
+            flex-shrink: 0; /* 縮まないように */
         }
         .h-row:nth-child(odd) { background: var(--table-row-odd); }
         .h-row:nth-child(even) { background: var(--table-row-even); }
@@ -466,7 +469,6 @@
             if(timeLeft <= 0) {
                 clearInterval(timerInterval);
                 if(isMyTurn) {
-                   // 時間切れならランダム入力してコール
                    while(currentInput.length < 3) {
                        let n = Math.floor(Math.random()*10);
                        if(!currentInput.includes(n)) currentInput.push(n);
@@ -476,7 +478,6 @@
             }
         }
 
-        // --- プレイヤーアクション ---
         function playerCall() {
             const guess = [...currentInput];
             const result = checkHitBlow(guess, cpuSecret);
@@ -487,46 +488,32 @@
             startTurn(false);
         }
 
-        // --- CPUアクション（ここを大幅強化） ---
         function cpuTurn() {
             try {
-                // 安全な推測を取得
                 let guess = getAiGuess();
-                
-                // もし万が一guessが空なら強制的に生成
-                if(!guess || guess.length !== 3) {
-                    guess = generateCpuSecret(); 
-                }
+                if(!guess || guess.length !== 3) guess = generateCpuSecret(); 
 
                 const result = checkHitBlow(guess, mySecret);
                 addLog('cpuLogList', guess, result);
                 SE.click();
 
-                // 学習（エラーが起きても無視してゲーム続行）
                 if(currentLevel >= 3) {
                     try {
                         aiCandidates = aiCandidates.filter(c => {
                             const chk = checkHitBlow(guess, c);
                             return chk.hit===result.hit && chk.ball===result.ball;
                         });
-                    } catch(e) {
-                        console.error("AI Learning Error", e);
-                        // 候補が壊れたらリセット
-                        initCandidates();
-                    }
+                    } catch(e) { initCandidates(); }
                 }
 
                 if(result.hit === 3) { finishGame(false); return; }
 
-            } catch(e) {
-                console.error("CPU Turn Error", e);
-            }
+            } catch(e) { }
             
-            // 何があっても必ずプレイヤーにターンを返す
             startTurn(true);
         }
 
-        // --- AIロジック（安全版） ---
+        // --- ロジック ---
         function generateCpuSecret(){
             let a=[0,1,2,3,4,5,6,7,8,9],r=[];
             for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}
@@ -537,26 +524,17 @@
             aiCandidates=[];
             for(let i=0;i<10;i++)
                 for(let j=0;j<10;j++)
-                    if(i!==j)
-                        for(let k=0;k<10;k++)
-                            if(k!==i&&k!==j) aiCandidates.push([i,j,k]);
+                    if(i!==j) for(let k=0;k<10;k++) if(k!==i&&k!==j) aiCandidates.push([i,j,k]);
         }
 
         function getAiGuess(){
-            // 候補がない、またはレベルが低い場合はランダム
-            if(currentLevel<=2 || !aiCandidates || aiCandidates.length===0) {
-                return generateCpuSecret();
-            }
-            // 中級
-            if(currentLevel<=5) {
-                return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
-            }
-            // 上級（中央値）
+            if(currentLevel<=2 || !aiCandidates || aiCandidates.length===0) return generateCpuSecret();
+            if(currentLevel<=5) return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
             return aiCandidates[Math.floor(aiCandidates.length/2)];
         }
 
         function checkHitBlow(g,t){
-            if(!g || !t) return {hit:0, ball:0}; // 安全策
+            if(!g || !t) return {hit:0, ball:0}; 
             let h=0,b=0;
             for(let i=0;i<3;i++){
                 if(g[i]===t[i])h++;
@@ -565,7 +543,7 @@
             return {hit:h,ball:b};
         }
 
-        // --- 共通処理 ---
+        // --- 修正箇所：ログを最後に追加し、自動スクロール ---
         function addLog(listId, guessArr, result) {
             const row = document.createElement('div');
             row.className = 'h-row';
@@ -573,7 +551,12 @@
                              <div class="h-val ${result.hit===3?'hit-3':''}">${result.hit}</div>
                              <div class="h-val">${result.ball}</div>`;
             const list = document.getElementById(listId);
-            list.insertBefore(row, list.firstChild);
+            
+            // 下に追加
+            list.appendChild(row);
+            
+            // 自動で一番下までスクロール
+            list.scrollTop = list.scrollHeight;
         }
         
         function updateMessage(msg) {
