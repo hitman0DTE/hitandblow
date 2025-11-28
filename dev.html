@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hit & Blow - v7.4 (Final)</title>
+    <title>Hit & Blow - v8 (AI & Turn)</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
@@ -157,15 +157,28 @@
         }
         .h-row {
             display: flex;
-            padding: 6px 8px;
+            padding: 6px 4px; /* 少し詰めました */
             color: var(--table-text); font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace;
             border-bottom: 1px solid rgba(0,0,0,0.1);
-            flex-shrink: 0; /* 縮まないように */
+            flex-shrink: 0;
+            align-items: center;
         }
         .h-row:nth-child(odd) { background: var(--table-row-odd); }
         .h-row:nth-child(even) { background: var(--table-row-even); }
-        .h-num { flex-grow: 1; text-align: center; letter-spacing: 4px; }
-        .h-val { width: 30px; text-align: center; }
+        
+        /* 新しい列：ターン数 */
+        .h-turn {
+            width: 20px;
+            font-size: 11px;
+            color: #8899aa;
+            border-right: 1px solid rgba(0,0,0,0.1);
+            margin-right: 5px;
+            text-align: center;
+            font-family: 'M PLUS 1p', sans-serif;
+        }
+
+        .h-num { flex-grow: 1; text-align: center; letter-spacing: 3px; }
+        .h-val { width: 25px; text-align: center; }
         .h-val.hit-3 { color: var(--accent-red); }
 
         /* B. セットアップ画面 */
@@ -352,7 +365,7 @@
     </div>
 
     <script>
-        // --- 基本変数 ---
+        // --- 変数 ---
         let isSetupMode = true;
         let isMyTurn = true;
         let isGameRunning = false;
@@ -363,8 +376,9 @@
         let aiCandidates = [];
         let timeLeft = 60;
         let timerInterval = null;
+        let turnCount = 1; // ターンカウント変数
 
-        // オーディオ設定
+        // オーディオ
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         function playTone(t,f,d){if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
         const SE={click:()=>playTone('triangle',800,0.05),error:()=>playTone('sawtooth',150,0.15),enter:()=>{playTone('sine',1200,0.08);setTimeout(()=>playTone('sine',600,0.08),50)},win:()=>{[523,659,783,1046].forEach((f,i)=>setTimeout(()=>playTone('square',f,0.2),i*100))},lose:()=>{[300,250,200,150].forEach((f,i)=>setTimeout(()=>playTone('sawtooth',f,0.2),i*150))}};
@@ -373,10 +387,15 @@
         window.onload = function() {
             const sLvl=localStorage.getItem('hb_level');
             if(sLvl && !isNaN(sLvl)) currentLevel=parseInt(sLvl);
+            updateCpuNameDisplay(); // CPUレベル表示
             updateMessage("番号を決めて、決定を押してください");
             document.getElementById('callBtn').innerText = "決定";
             updateInputDisplay();
         };
+
+        function updateCpuNameDisplay() {
+            document.getElementById('cpuName').innerText = `CPU (Lv.${currentLevel})`;
+        }
 
         // --- 入力制御 ---
         document.querySelectorAll('button[data-key]').forEach(btn => {
@@ -419,7 +438,7 @@
             document.getElementById('callBtn').classList.toggle('disabled', currentInput.length !== 3);
         }
 
-        // --- ゲーム開始処理 ---
+        // --- ゲーム開始 ---
         function startGame() {
             mySecret = [...currentInput];
             cpuSecret = generateCpuSecret();
@@ -427,6 +446,7 @@
             
             isSetupMode = false;
             isGameRunning = true;
+            turnCount = 1; // リセット
             
             document.getElementById('setupArea').classList.add('hidden');
             document.getElementById('gameArea').classList.remove('hidden');
@@ -441,7 +461,7 @@
             startTurn(true);
         }
 
-        // --- ターン管理 ---
+        // --- ターン処理 ---
         function startTurn(isPlayer) {
             isMyTurn = isPlayer;
             clearInterval(timerInterval);
@@ -449,17 +469,17 @@
             document.getElementById('timerDisplay').innerText = timeLeft;
 
             if(isPlayer) {
-                updateMessage("あなたのターンです");
+                updateMessage(`あなたのターン (${turnCount}手目)`);
                 document.querySelector('.order-label.mine').classList.add('active');
                 document.querySelector('.order-label.opp').classList.remove('active');
                 document.getElementById('callBtn').classList.remove('disabled');
                 timerInterval = setInterval(timerTick, 1000);
             } else {
-                updateMessage("相手は考えています…");
+                updateMessage(`相手は考えています... (${turnCount}手目)`);
                 document.querySelector('.order-label.mine').classList.remove('active');
                 document.querySelector('.order-label.opp').classList.add('active');
                 document.getElementById('callBtn').classList.add('disabled');
-                setTimeout(cpuTurn, 1500 + Math.random()*1000);
+                setTimeout(cpuTurn, 1000 + Math.random()*500);
             }
         }
 
@@ -478,25 +498,28 @@
             }
         }
 
+        // --- プレイヤー ---
         function playerCall() {
             const guess = [...currentInput];
             const result = checkHitBlow(guess, cpuSecret);
-            addLog('playerLogList', guess, result);
+            addLog('playerLogList', guess, result, turnCount);
             currentInput = []; updateInputDisplay();
 
             if(result.hit === 3) { finishGame(true); return; }
             startTurn(false);
         }
 
+        // --- CPUアクション ---
         function cpuTurn() {
             try {
-                let guess = getAiGuess();
+                let guess = getAiGuess(); // 強化されたAI
                 if(!guess || guess.length !== 3) guess = generateCpuSecret(); 
 
                 const result = checkHitBlow(guess, mySecret);
-                addLog('cpuLogList', guess, result);
+                addLog('cpuLogList', guess, result, turnCount);
                 SE.click();
 
+                // 候補絞り込み
                 if(currentLevel >= 3) {
                     try {
                         aiCandidates = aiCandidates.filter(c => {
@@ -510,27 +533,63 @@
 
             } catch(e) { }
             
+            turnCount++; // 次のターンへ
             startTurn(true);
         }
 
-        // --- ロジック ---
+        // --- AIロジック (Minimax / 最適化) ---
         function generateCpuSecret(){
             let a=[0,1,2,3,4,5,6,7,8,9],r=[];
             for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}
             return r;
         }
-
         function initCandidates(){
             aiCandidates=[];
             for(let i=0;i<10;i++)
                 for(let j=0;j<10;j++)
                     if(i!==j) for(let k=0;k<10;k++) if(k!==i&&k!==j) aiCandidates.push([i,j,k]);
         }
-
+        
+        // ★ここがAIの頭脳強化ポイント
         function getAiGuess(){
-            if(currentLevel<=2 || !aiCandidates || aiCandidates.length===0) return generateCpuSecret();
-            if(currentLevel<=5) return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
-            return aiCandidates[Math.floor(aiCandidates.length/2)];
+            // 初心者: ランダム
+            if(currentLevel <= 2 || !aiCandidates || aiCandidates.length===0) return generateCpuSecret();
+            
+            // 中級: 候補からランダム (今まで通り)
+            if(currentLevel <= 5) return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
+
+            // 上級(Lv6以上): 最適化ロジック (簡易Minimax)
+            // 候補が多すぎるときは重くなるのでランダムにする
+            if(aiCandidates.length > 150) return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];
+
+            let bestGuess = aiCandidates[0];
+            let minMaxRemaining = 9999;
+
+            // 全候補について「もしそれを言ったらどうなるか」をシミュレーション
+            for (let guess of aiCandidates) {
+                let maxRemainingForGuess = 0;
+                let groups = {};
+                
+                // すべての可能性に対してHit/Blowパターンを計算
+                for (let possibleSecret of aiCandidates) {
+                    let res = checkHitBlow(guess, possibleSecret);
+                    let key = `${res.hit}-${res.ball}`;
+                    if (!groups[key]) groups[key] = 0;
+                    groups[key]++;
+                }
+                
+                // 「最悪のケース」で残る候補数を算出
+                for (let key in groups) {
+                    if (groups[key] > maxRemainingForGuess) maxRemainingForGuess = groups[key];
+                }
+
+                // 最悪のケースでも候補が一番少なくなる数字を選ぶ
+                if (maxRemainingForGuess < minMaxRemaining) {
+                    minMaxRemaining = maxRemainingForGuess;
+                    bestGuess = guess;
+                }
+            }
+            return bestGuess;
         }
 
         function checkHitBlow(g,t){
@@ -543,19 +602,17 @@
             return {hit:h,ball:b};
         }
 
-        // --- 修正箇所：ログを最後に追加し、自動スクロール ---
-        function addLog(listId, guessArr, result) {
+        // --- ログ表示 (ターン数追加) ---
+        function addLog(listId, guessArr, result, turn) {
             const row = document.createElement('div');
             row.className = 'h-row';
-            row.innerHTML = `<div class="h-num">${guessArr.join(" ")}</div>
+            // 左端にターン数を表示する新しいdivを追加
+            row.innerHTML = `<div class="h-turn">${turn}</div>
+                             <div class="h-num">${guessArr.join(" ")}</div>
                              <div class="h-val ${result.hit===3?'hit-3':''}">${result.hit}</div>
                              <div class="h-val">${result.ball}</div>`;
             const list = document.getElementById(listId);
-            
-            // 下に追加
             list.appendChild(row);
-            
-            // 自動で一番下までスクロール
             list.scrollTop = list.scrollHeight;
         }
         
