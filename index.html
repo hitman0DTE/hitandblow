@@ -3,461 +3,532 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hit & Blow - v6 (2x5 Layout)</title>
+    <title>Hit & Blow - v7 (Pro Design)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        /* --- デザイン（v5ベース + レイアウト変更） --- */
+        :root {
+            --my-color: #1a5c9a; /* 画像の青 */
+            --my-light: #3a8cd9;
+            --opp-color: #8a0a2a; /* 画像の赤 */
+            --opp-light: #b91c4c;
+            --bg-color: #4a7a9a; /* 全体の背景青 */
+            --text-color: #fff;
+            --accent-red: #e60012;
+            --table-header: #3a5a7a;
+            --table-row-odd: #dbe4f1;
+            --table-row-even: #c8d6e8;
+            --table-text: #1a3a5a;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            background-color: #121214;
-            color: #fff;
+            font-family: 'M PLUS 1p', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 10px;
-            margin: 0;
-            min-height: 100vh;
             -webkit-tap-highlight-color: transparent;
             user-select: none;
             touch-action: manipulation;
+            overflow: hidden; /* スクロール禁止 */
         }
 
-        h1 { margin: 10px 0; font-size: 16px; color: #555; letter-spacing: 2px; }
-
-        .container {
-            width: 100%;
-            max-width: 450px; /* 横幅を少し広げて5列に対応 */
-            background: #1c1c1e;
-            padding: 15px;
-            border-radius: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            border: 1px solid #333;
-        }
-
-        .level-badge {
-            text-align: center;
-            margin-bottom: 15px;
-            background: linear-gradient(90deg, #ff9500, #ff3b30);
-            padding: 6px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 12px;
-        }
-
-        .phase-title { font-size: 14px; color: #aaa; text-align: center; margin-bottom: 5px; }
-
-        .input-display {
-            font-size: 52px;
-            letter-spacing: 14px;
-            text-align: center;
-            margin: 10px 0 20px 0;
-            font-weight: 700;
-            height: 60px;
-            color: #0a84ff;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 15px rgba(10, 132, 255, 0.4);
-        }
-
-        /* --- キーパッド変更箇所 --- */
-        .keypad {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr); /* 5列に変更 */
-            gap: 8px;
-            margin-bottom: 15px;
-        }
-
-        button {
-            padding: 0;
-            height: 60px; /* 高さを調整 */
-            font-size: 24px;
-            border: none;
-            border-radius: 12px;
-            background-color: #2c2c2e;
-            color: #fff;
-            cursor: pointer;
+        /* --- ヘッダー --- */
+        .top-header {
+            display: flex;
+            height: 80px;
+            background: linear-gradient(90deg, var(--my-color) 50%, var(--opp-color) 50%);
             position: relative;
-            overflow: hidden;
-            box-shadow: 0 4px 0 #151516;
+        }
+        .player-info {
+            width: 50%;
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        .player-info.mine { justify-content: flex-start; }
+        .player-info.opp { justify-content: flex-end; text-align: right; }
+        .avatar {
+            width: 50px; height: 50px;
+            border-radius: 50%;
+            background: #ccc;
+            border: 3px solid rgba(255,255,255,0.3);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 30px; color: #fff; overflow: hidden;
+        }
+        .player-details { margin: 0 10px; }
+        .player-name { font-weight: 800; font-size: 16px; }
+        .player-rate { font-size: 12px; opacity: 0.8; }
+        
+        /* 先手・後手バッジ */
+        .turn-order-badge {
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 2px;
+        }
+        .order-label {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #666;
+        }
+        .order-label.active.mine { background: var(--my-light); }
+        .order-label.active.opp { background: var(--opp-light); }
+
+        /* --- 守備番号表示エリア --- */
+        .secret-area {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 20px;
+            background: linear-gradient(90deg, #124275 50%, #690620 50%);
+        }
+        .num-cards { display: flex; gap: 5px; }
+        .num-card {
+            width: 45px; height: 55px;
+            background: #fff;
+            border-radius: 8px;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 36px; font-weight: 800;
+            color: var(--my-color);
+            box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+        }
+        .num-card.question {
+            background: linear-gradient(135deg, #5a8ca8, #3a6c88);
+            color: #fff;
+            font-size: 32px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        /* HBロゴの透かし */
+        .num-card.question::after {
+            content: 'HB'; position: absolute; bottom: 2px; right: 4px;
+            font-size: 8px; opacity: 0.5;
         }
 
-        button.active {
-            transform: translateY(4px);
-            box-shadow: 0 0 0 #151516;
-            background-color: #444;
+        /* --- 履歴エリア --- */
+        .history-container {
+            flex-grow: 1;
+            display: flex;
+            padding: 10px;
+            gap: 10px;
+            overflow: hidden;
         }
+        .history-col {
+            width: 50%;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+        }
+        .history-header {
+            background: var(--table-header);
+            color: #fff;
+            font-weight: 700; font-size: 14px;
+            padding: 8px;
+            display: flex; justify-content: space-between;
+        }
+        .h-head-left { text-align: left; flex-grow: 1; padding-left: 10px; }
+        .h-head-hb { width: 30px; text-align: center; }
         
-        /* コントロールボタン用エリア */
-        .controls {
-            display: grid;
-            grid-template-columns: 1fr 2fr; /* DEL:1, CALL:2 の比率 */
-            gap: 8px;
+        .history-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .h-row {
+            display: flex;
+            padding: 6px 8px;
+            color: var(--table-text); font-weight: 700; font-size: 18px; font-family: 'Courier New', monospace;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .h-row:nth-child(odd) { background: var(--table-row-odd); }
+        .h-row:nth-child(even) { background: var(--table-row-even); }
+        .h-num { flex-grow: 1; text-align: center; letter-spacing: 4px; }
+        .h-val { width: 30px; text-align: center; }
+        .h-val.hit-3 { color: var(--accent-red); }
+
+        /* --- フッター（入力部） --- */
+        .footer-area {
+            background: var(--bg-color);
+            padding: 10px 15px 20px;
+            position: relative;
+        }
+        /* 曲線的な背景装飾 */
+        .footer-bg-curve {
+            position: absolute; top: -20px; left: 0; width: 100%; height: 30px;
+            background: var(--bg-color);
+            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            z-index: 0;
+        }
+
+        .status-bar {
+            position: relative; z-index: 1;
+            display: flex; align-items: center;
             margin-bottom: 15px;
         }
-
-        .action-btn { 
-            background: linear-gradient(135deg, #30d158, #34c759); 
-            font-weight: bold; 
-            font-size: 20px;
-            box-shadow: 0 4px 0 #248a3d;
-            height: 60px;
-            border-radius: 12px;
+        /* タイマー */
+        .timer-circle {
+            width: 60px; height: 60px;
+            background: #fff; border-radius: 50%;
+            border: 4px solid #3a5a7a;
+            display: flex; justify-content: center; align-items: center;
+            font-size: 24px; font-weight: 800; color: var(--table-text);
+            position: relative;
         }
-        .action-btn.active { background: #28a745; box-shadow: none; }
-
-        .del-btn { 
-            background-color: #3a3a3c; 
-            color: #ff453a; 
-            font-size: 18px; 
-            font-weight: bold;
-            height: 60px;
-            border-radius: 12px;
-            box-shadow: 0 4px 0 #151516;
+        .timer-circle::after { /* 目盛り風の装飾 */
+            content: ''; position: absolute; width: 90%; height: 90%;
+            border-radius: 50%; border: 2px dashed #ccc;
         }
-        .del-btn.active { transform: translateY(4px); box-shadow: none; }
-
-
-        .battle-area {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 15px;
-            border-top: 1px solid #333;
-            padding-top: 10px;
-        }
-        .side { width: 48%; }
-        .side-header { font-size: 11px; color: #666; text-align: center; margin-bottom: 5px; font-weight: bold; }
         
-        .log-list {
-            font-size: 13px;
-            height: 200px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            background: #121214;
-            border-radius: 8px;
-            padding: 5px;
-            -webkit-overflow-scrolling: touch; 
-            /* 下から積み上げるためのフレックス設定は今回不要（appendChildにするため） */
-            display: flex;
-            flex-direction: column; 
+        /* メッセージと入力表示 */
+        .input-status-container {
+            flex-grow: 1; margin-left: 15px;
+            display: flex; flex-direction: column; align-items: center;
         }
-        .log-item {
-            padding: 6px 4px;
-            border-bottom: 1px solid #222;
-            display: flex;
-            justify-content: space-between;
-            /* フェードインアニメーション */
-            animation: fadeIn 0.3s ease;
+        .game-message {
+            font-size: 12px; font-weight: 700; color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5); margin-bottom: 5px;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .input-display-box {
+            width: 200px; height: 50px;
+            background: linear-gradient(to bottom, #4a7a9a, #2a5a7a);
+            border: 2px solid #fff; border-radius: 10px;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 32px; font-weight: 800; letter-spacing: 8px;
+            color: #fff;
+            text-shadow: 0 0 10px rgba(255,255,255,0.7);
+        }
 
-        .res { font-weight: bold; }
-        .hit { color: #ff453a; }
-        .ball { color: #ffd60a; }
+        /* テンキー */
+        .keypad-area {
+            position: relative; z-index: 1;
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
+            margin-bottom: 10px;
+        }
+        .key-btn {
+            height: 50px;
+            background: linear-gradient(to bottom, #e0e0e0, #c0c0c0);
+            border: none; border-radius: 8px;
+            font-size: 22px; font-weight: 800; color: #333;
+            box-shadow: 0 3px 0 #999;
+            text-shadow: 0 1px 0 #fff;
+        }
+        .key-btn:active.key-active {
+            transform: translateY(3px); box-shadow: none; background: #b0b0b0;
+        }
+        
+        .ctrl-area {
+            position: relative; z-index: 1;
+            display: flex; gap: 10px;
+        }
+        .ctrl-btn {
+            flex: 1; height: 45px; border: none; border-radius: 8px;
+            font-size: 18px; font-weight: 700; color: #fff;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.3);
+        }
+        .del-btn { background: #d9534f; box-shadow: 0 3px 0 #c9302c; }
+        .call-btn { background: #5cb85c; box-shadow: 0 3px 0 #4cae4c; }
+        .ctrl-btn:active.key-active { transform: translateY(3px); box-shadow: none; opacity: 0.9; }
+        .disabled { opacity: 0.5; pointer-events: none; }
+
+        /* setup画面用 */
+        #setupOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #fff;
+        }
+        .setup-title { font-size: 24px; margin-bottom: 20px; }
+        .setup-input {
+            font-size: 48px; font-weight: 800; letter-spacing: 12px;
+            margin-bottom: 30px; color: var(--my-light);
+        }
 
         .hidden { display: none !important; }
-        .sound-toggle { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; opacity: 0.5; }
     </style>
 </head>
 <body>
 
-    <div class="sound-toggle" id="soundIcon">🔊</div>
-    <h1>Hit & Blow v6</h1>
-
-    <div class="container">
-        <div class="level-badge" id="levelDisplay">Level 1</div>
-
-        <div id="setupPhase">
-            <div class="phase-title">SECRET NUMBER</div>
-            <div class="input-display" id="setupDisplay">___</div>
-            
-            <div class="keypad">
-                <button data-key="0">0</button>
-                <button data-key="1">1</button>
-                <button data-key="2">2</button>
-                <button data-key="3">3</button>
-                <button data-key="4">4</button>
-                <button data-key="5">5</button>
-                <button data-key="6">6</button>
-                <button data-key="7">7</button>
-                <button data-key="8">8</button>
-                <button data-key="9">9</button>
-            </div>
-            <div class="controls">
-                <button data-key="del" class="del-btn">DEL</button>
-                <button data-key="enter" class="action-btn">GAME START</button>
-            </div>
+    <div id="setupOverlay">
+        <div class="setup-title">あなたの守備番号を決めてください</div>
+        <div class="setup-input" id="setupDisplay">_ _ _</div>
         </div>
 
-        <div id="battlePhase" class="hidden">
-            <div class="phase-title">YOUR TURN / 守備: <strong id="mySecretBadge" style="color:#fff">---</strong></div>
-            <div class="input-display" id="battleDisplay">___</div>
-            
-            <div class="keypad">
-                <button data-key="0">0</button>
-                <button data-key="1">1</button>
-                <button data-key="2">2</button>
-                <button data-key="3">3</button>
-                <button data-key="4">4</button>
-                <button data-key="5">5</button>
-                <button data-key="6">6</button>
-                <button data-key="7">7</button>
-                <button data-key="8">8</button>
-                <button data-key="9">9</button>
+    <div class="top-header">
+        <div class="player-info mine">
+            <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/></svg>" width="40"></div>
+            <div class="player-details">
+                <div class="player-name">あなた</div>
+                <div class="player-rate" id="levelDisplay">Rate: 1500 (Lv.1)</div>
             </div>
-            <div class="controls">
-                <button data-key="del" class="del-btn">DEL</button>
-                <button data-key="enter" class="action-btn">CALL</button>
+        </div>
+        <div class="turn-order-badge">
+            <div class="order-label mine active">先手</div>
+            <div class="order-label opp">後手</div>
+        </div>
+        <div class="player-info opp">
+            <div class="player-details">
+                <div class="player-name" id="cpuName">CPU</div>
+                <div class="player-rate">Rate: 1500</div>
             </div>
+            <div class="avatar"><img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z'/></svg>" width="40"></div>
+        </div>
+    </div>
 
-            <div class="battle-area">
-                <div class="side">
-                    <div class="side-header">YOU</div>
-                    <div class="log-list" id="playerLog"></div>
+    <div class="secret-area">
+        <div class="num-cards mine" id="mySecretCards">
+            <div class="num-card">?</div><div class="num-card">?</div><div class="num-card">?</div>
+        </div>
+        <div class="num-cards opp">
+            <div class="num-card question">?</div>
+            <div class="num-card question">?</div>
+            <div class="num-card question">?</div>
+        </div>
+    </div>
+
+    <div class="history-container">
+        <div class="history-col mine">
+            <div class="history-header">
+                <div class="h-head-left">あなたの推理</div>
+                <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+            </div>
+            <div class="history-list" id="playerLogList">
+                <div class="h-row placeholder"><div class="h-num">- - -</div></div>
                 </div>
-                <div class="side">
-                    <div class="side-header">CPU</div>
-                    <div class="log-list" id="cpuLog"></div>
-                </div>
+        </div>
+        <div class="history-col opp">
+            <div class="history-header">
+                <div class="h-head-left">相手の推理</div>
+                <div class="h-head-hb">H</div><div class="h-head-hb">B</div>
+            </div>
+            <div class="history-list" id="cpuLogList">
+                 <div class="h-row placeholder"><div class="h-num">- - -</div></div>
             </div>
         </div>
     </div>
 
+    <div class="footer-area">
+        <div class="footer-bg-curve"></div>
+        
+        <div class="status-bar">
+            <div class="timer-circle" id="timerDisplay">60</div>
+            <div class="input-status-container">
+                <div class="game-message" id="gameMessage">あなたのターンです</div>
+                <div class="input-display-box" id="battleInputDisplay">_ _ _</div>
+            </div>
+        </div>
+
+        <div class="keypad-area">
+            <button class="key-btn" data-key="0">0</button><button class="key-btn" data-key="1">1</button>
+            <button class="key-btn" data-key="2">2</button><button class="key-btn" data-key="3">3</button>
+            <button class="key-btn" data-key="4">4</button><button class="key-btn" data-key="5">5</button>
+            <button class="key-btn" data-key="6">6</button><button class="key-btn" data-key="7">7</button>
+            <button class="key-btn" data-key="8">8</button><button class="key-btn" data-key="9">9</button>
+        </div>
+        <div class="ctrl-area">
+            <button class="ctrl-btn del-btn" data-key="del">DEL</button>
+            <button class="ctrl-btn call-btn" data-key="call" id="callBtn">CALL</button>
+        </div>
+    </div>
+
+
     <script>
-        // --- v5の高速反応エンジン ---
+        // --- システム変数 ---
+        let isSetupMode = true;
+        let isMyTurn = true;
+        let isGameRunning = false;
+        let currentInput = [];
+        let mySecret = [];
+        let cpuSecret = [];
+        let turnCount = 1;
+        let currentLevel = 1;
+        let aiCandidates = [];
+
+        // タイマー変数
+        let timeLeft = 60;
+        let timerInterval = null;
+
+        // サウンド（前回と同じ）
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let isSoundOn = true;
+        function playTone(t,f,d){if(audioCtx.state==='suspended')audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=t;o.frequency.value=f;g.gain.value=0.08;g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+d);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+d);}
+        const SE={click:()=>playTone('triangle',800,0.05),error:()=>playTone('sawtooth',150,0.15),enter:()=>{playTone('sine',1200,0.08);setTimeout(()=>playTone('sine',600,0.08),50)},win:()=>{[523,659,783,1046].forEach((f,i)=>setTimeout(()=>playTone('square',f,0.2),i*100))},lose:()=>{[300,250,200,150].forEach((f,i)=>setTimeout(()=>playTone('sawtooth',f,0.2),i*150))}};
 
-        // タッチイベント登録
-        document.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                handleInput(btn.dataset.key);
-                visualEffect(btn);
-            }, { passive: false });
+        // 初期化
+        window.onload = function() {
+            const sLvl=localStorage.getItem('hb_level');if(sLvl)currentLevel=parseInt(sLvl);
+            document.getElementById('levelDisplay').innerText = `Rate: ${1400 + currentLevel*100} (Lv.${currentLevel})`;
+            updateMessage("守備番号を決めて、CALLを押してください");
+            document.getElementById('callBtn').innerText = "決定";
+        };
 
-            btn.addEventListener('mousedown', (e) => {
-                handleInput(btn.dataset.key);
-                visualEffect(btn);
+        // --- 入力イベント ---
+        document.querySelectorAll('button[data-key]').forEach(btn => {
+            ['touchstart','mousedown'].forEach(evt => {
+                btn.addEventListener(evt, (e) => {
+                    e.preventDefault();
+                    handleKey(btn.dataset.key, btn);
+                }, {passive:false});
             });
         });
 
-        document.getElementById('soundIcon').addEventListener('touchstart', toggleSound);
-        document.getElementById('soundIcon').addEventListener('click', toggleSound);
+        function handleKey(key, btnEle) {
+            // 視覚効果
+            btnEle.classList.add('key-active');
+            setTimeout(()=>btnEle.classList.remove('key-active'), 100);
 
-        function toggleSound(e) {
-            if(e) e.preventDefault();
-            isSoundOn = !isSoundOn;
-            document.getElementById('soundIcon').innerText = isSoundOn ? "🔊" : "🔇";
-            document.getElementById('soundIcon').style.opacity = isSoundOn ? "1" : "0.5";
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-        }
+            if(!isMyTurn && !isSetupMode) return; // 相手ターン中は操作無効
 
-        function visualEffect(btn) {
-            btn.classList.add('active');
-            setTimeout(() => btn.classList.remove('active'), 100);
-        }
-
-        function playTone(type, freq, duration) {
-            if (!isSoundOn) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        }
-
-        const SE = {
-            click: () => playTone('triangle', 800, 0.05),
-            error: () => playTone('sawtooth', 150, 0.15),
-            enter: () => { playTone('sine', 1200, 0.08); setTimeout(()=>playTone('sine', 600, 0.08), 50); },
-            win: () => { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone('square', f, 0.2), i*100)); },
-            lose: () => { [300, 250, 200, 150].forEach((f, i) => setTimeout(() => playTone('sawtooth', f, 0.2), i*150)); }
-        };
-
-        // --- ゲームロジック ---
-        let currentLevel = 1;
-        let mySecret = [], cpuSecret = [], currentInput = [];
-        let turnCount = 1;
-        let isGameRunning = false;
-        let aiCandidates = [];
-
-        (function init() {
-            const savedLvl = localStorage.getItem('hb_level');
-            if(savedLvl) currentLevel = parseInt(savedLvl);
-            updateLevelDisplay();
-            initCandidates();
-        })();
-
-        function handleInput(key) {
-            if (key === 'del') deleteNum();
-            else if (key === 'enter') {
-                if (!isGameRunning) decideMyNumber();
-                else playerCall();
+            if(key === 'del') {
+                if(currentInput.length > 0) { currentInput.pop(); SE.click(); }
+            } else if(key === 'call') {
+                if(currentInput.length !== 3) { SE.error(); return; }
+                SE.enter();
+                if(isSetupMode) startGame(); else playerCall();
             } else {
-                inputNum(parseInt(key));
+                const num = parseInt(key);
+                if(currentInput.length < 3 && !currentInput.includes(num)) {
+                    currentInput.push(num); SE.click();
+                } else { SE.error(); }
             }
+            updateInputDisplay();
         }
 
-        function inputNum(num) {
-            if (currentInput.length < 3) {
-                if (!currentInput.includes(num)) {
-                    currentInput.push(num);
-                    updateDisplay();
-                    SE.click();
-                } else {
-                    SE.error();
-                }
-            }
+        function updateInputDisplay() {
+            let str = currentInput.join(" ");
+            while(currentInput.length < 3) str += (currentInput.length===0 && str==="" ? "_ _ _" : " _");
+            document.getElementById(isSetupMode ? 'setupDisplay' : 'battleInputDisplay').innerText = str;
+            
+            // CALLボタンの状態
+            document.getElementById('callBtn').classList.toggle('disabled', currentInput.length !== 3);
         }
 
-        function deleteNum() {
-            if(currentInput.length > 0) {
-                currentInput.pop();
-                updateDisplay();
-                SE.click();
-            }
-        }
-
-        function updateDisplay() {
-            let str = currentInput.join("");
-            while(str.length < 3) str += "_";
-            const id = isGameRunning ? 'battleDisplay' : 'setupDisplay';
-            document.getElementById(id).innerText = str;
-        }
-
-        function decideMyNumber() {
-            if (currentInput.length !== 3) { SE.error(); return; }
-            SE.enter();
+        // --- ゲーム進行 ---
+        function startGame() {
             mySecret = [...currentInput];
             cpuSecret = generateCpuSecret();
-            
-            isGameRunning = true;
-            document.getElementById('setupPhase').classList.add('hidden');
-            document.getElementById('battlePhase').classList.remove('hidden');
-            document.getElementById('mySecretBadge').innerText = mySecret.join("");
-            
-            currentInput = [];
-            updateDisplay();
             initCandidates();
+            
+            isSetupMode = false;
+            isGameRunning = true;
+            document.getElementById('setupOverlay').classList.add('hidden');
+            document.getElementById('callBtn').innerText = "CALL";
+            
+            // 自分の守備番号を表示
+            const myCards = document.getElementById('mySecretCards').children;
+            for(let i=0; i<3; i++) myCards[i].innerText = mySecret[i];
+            
+            // プレースホルダーを消す
+            document.querySelectorAll('.placeholder').forEach(el=>el.remove());
+
+            currentInput = []; updateInputDisplay();
+            startTurn(true); // プレイヤーのターン開始
+        }
+
+        function startTurn(isPlayer) {
+            isMyTurn = isPlayer;
+            clearInterval(timerInterval);
+            timeLeft = 60;
+            document.getElementById('timerDisplay').innerText = timeLeft;
+
+            if(isPlayer) {
+                updateMessage("あなたのターンです");
+                document.querySelector('.order-label.mine').classList.add('active');
+                document.querySelector('.order-label.opp').classList.remove('active');
+                document.getElementById('callBtn').classList.remove('disabled');
+                timerInterval = setInterval(timerTick, 1000);
+            } else {
+                updateMessage("相手は考えています…");
+                document.querySelector('.order-label.mine').classList.remove('active');
+                document.querySelector('.order-label.opp').classList.add('active');
+                document.getElementById('callBtn').classList.add('disabled');
+                setTimeout(cpuTurn, 1500 + Math.random()*1000); // 少し考える時間
+            }
+        }
+
+        function timerTick() {
+            timeLeft--;
+            document.getElementById('timerDisplay').innerText = timeLeft < 10 ? "0"+timeLeft : timeLeft;
+            if(timeLeft <= 0) {
+                clearInterval(timerInterval);
+                // 時間切れ処理（今回はとりあえずランダムコール扱いにする）
+                if(isMyTurn && currentInput.length !== 3) {
+                   while(currentInput.length < 3) {
+                       let n = Math.floor(Math.random()*10);
+                       if(!currentInput.includes(n)) currentInput.push(n);
+                   }
+                   playerCall();
+                }
+            }
         }
 
         function playerCall() {
-            if (currentInput.length !== 3) { SE.error(); return; }
-            SE.enter();
+            const guess = [...currentInput];
+            const result = checkHitBlow(guess, cpuSecret);
+            addLog('playerLogList', guess, result);
+            currentInput = []; updateInputDisplay();
 
-            const result = checkHitBlow(currentInput, cpuSecret);
-            addLog('playerLog', turnCount, currentInput.join(""), result);
-
-            if (result.hit === 3) {
-                setTimeout(() => {
-                    SE.win();
-                    alert("YOU WIN!");
-                    saveLevel(true);
-                    location.reload();
-                }, 300);
-                return;
-            }
-
-            currentInput = [];
-            updateDisplay();
-
-            const btn = document.querySelector('button[data-key="enter"]');
-            if(btn) btn.disabled = true;
-            setTimeout(cpuTurn, 800);
+            if(result.hit === 3) { finishGame(true); return; }
+            startTurn(false); // CPUターンへ
         }
 
         function cpuTurn() {
-            let guess = getAiGuess();
+            const guess = getAiGuess();
             const result = checkHitBlow(guess, mySecret);
-            addLog('cpuLog', turnCount, guess.join(""), result);
+            addLog('cpuLogList', guess, result);
+            SE.click();
 
+            // AI学習
             if(currentLevel >= 3) {
                 aiCandidates = aiCandidates.filter(c => {
                     const chk = checkHitBlow(guess, c);
-                    return chk.hit === result.hit && chk.ball === result.ball;
+                    return chk.hit===result.hit && chk.ball===result.ball;
                 });
             }
 
-            if (result.hit === 3) {
-                setTimeout(() => {
-                    SE.lose();
-                    alert("YOU LOSE...");
-                    saveLevel(false);
-                    location.reload();
-                }, 300);
-                return;
-            }
-
+            if(result.hit === 3) { finishGame(false); return; }
             turnCount++;
-            const btn = document.querySelector('button[data-key="enter"]');
-            if(btn) btn.disabled = false;
+            startTurn(true); // プレイヤーターンへ
         }
 
-        function generateCpuSecret() {
-            let all = [0,1,2,3,4,5,6,7,8,9];
-            let res = [];
-            for(let i=0; i<3; i++) {
-                let idx = Math.floor(Math.random() * all.length);
-                res.push(all[idx]);
-                all.splice(idx, 1);
-            }
-            return res;
+        // --- ログ表示 ---
+        function addLog(listId, guessArr, result) {
+            const row = document.createElement('div');
+            row.className = 'h-row';
+            row.innerHTML = `<div class="h-num">${guessArr.join(" ")}</div>
+                             <div class="h-val ${result.hit===3?'hit-3':''}">${result.hit}</div>
+                             <div class="h-val">${result.ball}</div>`;
+            const list = document.getElementById(listId);
+            list.insertBefore(row, list.firstChild); // 上に追加
+        }
+        
+        function updateMessage(msg) {
+            document.getElementById('gameMessage').innerText = msg;
         }
 
-        function initCandidates() {
-            aiCandidates = [];
-            for (let i = 0; i < 10; i++) {
-                for (let j = 0; j < 10; j++) {
-                    if(i===j) continue;
-                    for (let k = 0; k < 10; k++) {
-                        if(k===i || k===j) continue;
-                        aiCandidates.push([i, j, k]);
-                    }
-                }
-            }
-        }
-
-        function getAiGuess() {
-            if(currentLevel <= 2 || aiCandidates.length === 0) return generateCpuSecret();
-            if(currentLevel <= 5) return aiCandidates[Math.floor(Math.random() * aiCandidates.length)];
-            return aiCandidates[Math.floor(aiCandidates.length / 2)];
-        }
-
-        function checkHitBlow(g, t) {
-            let h=0, b=0;
-            for(let i=0; i<3; i++) {
-                if(g[i]===t[i]) h++;
-                else if(t.includes(g[i])) b++;
-            }
-            return {hit:h, ball:b};
-        }
-
-        // --- ログ表示の変更点: appendChildで下に追加 ---
-        function addLog(id, t, n, r) {
-            const d = document.createElement('div');
-            d.className = 'log-item';
-            d.innerHTML = `<span>${t}. <strong>${n}</strong></span><span class="res"><span class="hit">${r.hit}H</span> <span class="ball">${r.ball}B</span></span>`;
-            
-            const list = document.getElementById(id);
-            list.appendChild(d); // ここを変更（insertBefore -> appendChild）
-            
-            // 最新の結果が見えるように自動スクロール
-            list.scrollTop = list.scrollHeight;
-        }
-
-        function updateLevelDisplay() {
-            document.getElementById('levelDisplay').innerText = `Level ${currentLevel}`;
-        }
-
-        function saveLevel(win) {
-            if(win) currentLevel++;
-            else if(currentLevel > 1) currentLevel--;
+        // --- ゲーム終了 ---
+        function finishGame(isWin) {
+            clearInterval(timerInterval);
+            isGameRunning = false;
+            if(isWin) { SE.win(); alert("YOU WIN!"); currentLevel++; } 
+            else { SE.lose(); alert("YOU LOSE..."); if(currentLevel>1)currentLevel--; }
             localStorage.setItem('hb_level', currentLevel);
+            location.reload();
         }
+
+        // --- AI & ロジック (v6と同じ) ---
+        function generateCpuSecret(){let a=[0,1,2,3,4,5,6,7,8,9],r=[];for(let i=0;i<3;i++){let x=Math.floor(Math.random()*a.length);r.push(a[x]);a.splice(x,1)}return r}
+        function initCandidates(){aiCandidates=[];for(let i=0;i<10;i++)for(let j=0;j<10;j++)if(i!==j)for(let k=0;k<10;k++)if(k!==i&&k!==j)aiCandidates.push([i,j,k])}
+        function getAiGuess(){if(currentLevel<=2||aiCandidates.length===0)return generateCpuSecret();if(currentLevel<=5)return aiCandidates[Math.floor(Math.random()*aiCandidates.length)];return aiCandidates[Math.floor(aiCandidates.length/2)]}
+        function checkHitBlow(g,t){let h=0,b=0;for(let i=0;i<3;i++){if(g[i]===t[i])h++;else if(t.includes(g[i]))b++;}return {hit:h,ball:b}}
     </script>
 </body>
 </html>
