@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hit & Blow - v6 (2x5 Layout)</title>
+    <style>
+        /* --- デザイン（v5ベース + レイアウト変更） --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #121214;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            margin: 0;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        h1 { margin: 10px 0; font-size: 16px; color: #555; letter-spacing: 2px; }
+
+        .container {
+            width: 100%;
+            max-width: 450px; /* 横幅を少し広げて5列に対応 */
+            background: #1c1c1e;
+            padding: 15px;
+            border-radius: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        .level-badge {
+            text-align: center;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #ff9500, #ff3b30);
+            padding: 6px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .phase-title { font-size: 14px; color: #aaa; text-align: center; margin-bottom: 5px; }
+
+        .input-display {
+            font-size: 52px;
+            letter-spacing: 14px;
+            text-align: center;
+            margin: 10px 0 20px 0;
+            font-weight: 700;
+            height: 60px;
+            color: #0a84ff;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 15px rgba(10, 132, 255, 0.4);
+        }
+
+        /* --- キーパッド変更箇所 --- */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5列に変更 */
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            padding: 0;
+            height: 60px; /* 高さを調整 */
+            font-size: 24px;
+            border: none;
+            border-radius: 12px;
+            background-color: #2c2c2e;
+            color: #fff;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 0 #151516;
+        }
+
+        button.active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #151516;
+            background-color: #444;
+        }
+        
+        /* コントロールボタン用エリア */
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* DEL:1, CALL:2 の比率 */
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .action-btn { 
+            background: linear-gradient(135deg, #30d158, #34c759); 
+            font-weight: bold; 
+            font-size: 20px;
+            box-shadow: 0 4px 0 #248a3d;
+            height: 60px;
+            border-radius: 12px;
+        }
+        .action-btn.active { background: #28a745; box-shadow: none; }
+
+        .del-btn { 
+            background-color: #3a3a3c; 
+            color: #ff453a; 
+            font-size: 18px; 
+            font-weight: bold;
+            height: 60px;
+            border-radius: 12px;
+            box-shadow: 0 4px 0 #151516;
+        }
+        .del-btn.active { transform: translateY(4px); box-shadow: none; }
+
+
+        .battle-area {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        .side { width: 48%; }
+        .side-header { font-size: 11px; color: #666; text-align: center; margin-bottom: 5px; font-weight: bold; }
+        
+        .log-list {
+            font-size: 13px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            background: #121214;
+            border-radius: 8px;
+            padding: 5px;
+            -webkit-overflow-scrolling: touch; 
+            /* 下から積み上げるためのフレックス設定は今回不要（appendChildにするため） */
+            display: flex;
+            flex-direction: column; 
+        }
+        .log-item {
+            padding: 6px 4px;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            /* フェードインアニメーション */
+            animation: fadeIn 0.3s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .res { font-weight: bold; }
+        .hit { color: #ff453a; }
+        .ball { color: #ffd60a; }
+
+        .hidden { display: none !important; }
+        .sound-toggle { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; opacity: 0.5; }
+    </style>
+</head>
+<body>
+
+    <div class="sound-toggle" id="soundIcon">🔊</div>
+    <h1>Hit & Blow v6</h1>
+
+    <div class="container">
+        <div class="level-badge" id="levelDisplay">Level 1</div>
+
+        <div id="setupPhase">
+            <div class="phase-title">SECRET NUMBER</div>
+            <div class="input-display" id="setupDisplay">___</div>
+            
+            <div class="keypad">
+                <button data-key="0">0</button>
+                <button data-key="1">1</button>
+                <button data-key="2">2</button>
+                <button data-key="3">3</button>
+                <button data-key="4">4</button>
+                <button data-key="5">5</button>
+                <button data-key="6">6</button>
+                <button data-key="7">7</button>
+                <button data-key="8">8</button>
+                <button data-key="9">9</button>
+            </div>
+            <div class="controls">
+                <button data-key="del" class="del-btn">DEL</button>
+                <button data-key="enter" class="action-btn">GAME START</button>
+            </div>
+        </div>
+
+        <div id="battlePhase" class="hidden">
+            <div class="phase-title">YOUR TURN / 守備: <strong id="mySecretBadge" style="color:#fff">---</strong></div>
+            <div class="input-display" id="battleDisplay">___</div>
+            
+            <div class="keypad">
+                <button data-key="0">0</button>
+                <button data-key="1">1</button>
+                <button data-key="2">2</button>
+                <button data-key="3">3</button>
+                <button data-key="4">4</button>
+                <button data-key="5">5</button>
+                <button data-key="6">6</button>
+                <button data-key="7">7</button>
+                <button data-key="8">8</button>
+                <button data-key="9">9</button>
+            </div>
+            <div class="controls">
+                <button data-key="del" class="del-btn">DEL</button>
+                <button data-key="enter" class="action-btn">CALL</button>
+            </div>
+
+            <div class="battle-area">
+                <div class="side">
+                    <div class="side-header">YOU</div>
+                    <div class="log-list" id="playerLog"></div>
+                </div>
+                <div class="side">
+                    <div class="side-header">CPU</div>
+                    <div class="log-list" id="cpuLog"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- v5の高速反応エンジン ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let isSoundOn = true;
+
+        // タッチイベント登録
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                handleInput(btn.dataset.key);
+                visualEffect(btn);
+            }, { passive: false });
+
+            btn.addEventListener('mousedown', (e) => {
+                handleInput(btn.dataset.key);
+                visualEffect(btn);
+            });
+        });
+
+        document.getElementById('soundIcon').addEventListener('touchstart', toggleSound);
+        document.getElementById('soundIcon').addEventListener('click', toggleSound);
+
+        function toggleSound(e) {
+            if(e) e.preventDefault();
+            isSoundOn = !isSoundOn;
+            document.getElementById('soundIcon').innerText = isSoundOn ? "🔊" : "🔇";
+            document.getElementById('soundIcon').style.opacity = isSoundOn ? "1" : "0.5";
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        function visualEffect(btn) {
+            btn.classList.add('active');
+            setTimeout(() => btn.classList.remove('active'), 100);
+        }
+
+        function playTone(type, freq, duration) {
+            if (!isSoundOn) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        const SE = {
+            click: () => playTone('triangle', 800, 0.05),
+            error: () => playTone('sawtooth', 150, 0.15),
+            enter: () => { playTone('sine', 1200, 0.08); setTimeout(()=>playTone('sine', 600, 0.08), 50); },
+            win: () => { [523, 659, 783, 1046].forEach((f, i) => setTimeout(() => playTone('square', f, 0.2), i*100)); },
+            lose: () => { [300, 250, 200, 150].forEach((f, i) => setTimeout(() => playTone('sawtooth', f, 0.2), i*150)); }
+        };
+
+        // --- ゲームロジック ---
+        let currentLevel = 1;
+        let mySecret = [], cpuSecret = [], currentInput = [];
+        let turnCount = 1;
+        let isGameRunning = false;
+        let aiCandidates = [];
+
+        (function init() {
+            const savedLvl = localStorage.getItem('hb_level');
+            if(savedLvl) currentLevel = parseInt(savedLvl);
+            updateLevelDisplay();
+            initCandidates();
+        })();
+
+        function handleInput(key) {
+            if (key === 'del') deleteNum();
+            else if (key === 'enter') {
+                if (!isGameRunning) decideMyNumber();
+                else playerCall();
+            } else {
+                inputNum(parseInt(key));
+            }
+        }
+
+        function inputNum(num) {
+            if (currentInput.length < 3) {
+                if (!currentInput.includes(num)) {
+                    currentInput.push(num);
+                    updateDisplay();
+                    SE.click();
+                } else {
+                    SE.error();
+                }
+            }
+        }
+
+        function deleteNum() {
+            if(currentInput.length > 0) {
+                currentInput.pop();
+                updateDisplay();
+                SE.click();
+            }
+        }
+
+        function updateDisplay() {
+            let str = currentInput.join("");
+            while(str.length < 3) str += "_";
+            const id = isGameRunning ? 'battleDisplay' : 'setupDisplay';
+            document.getElementById(id).innerText = str;
+        }
+
+        function decideMyNumber() {
+            if (currentInput.length !== 3) { SE.error(); return; }
+            SE.enter();
+            mySecret = [...currentInput];
+            cpuSecret = generateCpuSecret();
+            
+            isGameRunning = true;
+            document.getElementById('setupPhase').classList.add('hidden');
+            document.getElementById('battlePhase').classList.remove('hidden');
+            document.getElementById('mySecretBadge').innerText = mySecret.join("");
+            
+            currentInput = [];
+            updateDisplay();
+            initCandidates();
+        }
+
+        function playerCall() {
+            if (currentInput.length !== 3) { SE.error(); return; }
+            SE.enter();
+
+            const result = checkHitBlow(currentInput, cpuSecret);
+            addLog('playerLog', turnCount, currentInput.join(""), result);
+
+            if (result.hit === 3) {
+                setTimeout(() => {
+                    SE.win();
+                    alert("YOU WIN!");
+                    saveLevel(true);
+                    location.reload();
+                }, 300);
+                return;
+            }
+
+            currentInput = [];
+            updateDisplay();
+
+            const btn = document.querySelector('button[data-key="enter"]');
+            if(btn) btn.disabled = true;
+            setTimeout(cpuTurn, 800);
+        }
+
+        function cpuTurn() {
+            let guess = getAiGuess();
+            const result = checkHitBlow(guess, mySecret);
+            addLog('cpuLog', turnCount, guess.join(""), result);
+
+            if(currentLevel >= 3) {
+                aiCandidates = aiCandidates.filter(c => {
+                    const chk = checkHitBlow(guess, c);
+                    return chk.hit === result.hit && chk.ball === result.ball;
+                });
+            }
+
+            if (result.hit === 3) {
+                setTimeout(() => {
+                    SE.lose();
+                    alert("YOU LOSE...");
+                    saveLevel(false);
+                    location.reload();
+                }, 300);
+                return;
+            }
+
+            turnCount++;
+            const btn = document.querySelector('button[data-key="enter"]');
+            if(btn) btn.disabled = false;
+        }
+
+        function generateCpuSecret() {
+            let all = [0,1,2,3,4,5,6,7,8,9];
+            let res = [];
+            for(let i=0; i<3; i++) {
+                let idx = Math.floor(Math.random() * all.length);
+                res.push(all[idx]);
+                all.splice(idx, 1);
+            }
+            return res;
+        }
+
+        function initCandidates() {
+            aiCandidates = [];
+            for (let i = 0; i < 10; i++) {
+                for (let j = 0; j < 10; j++) {
+                    if(i===j) continue;
+                    for (let k = 0; k < 10; k++) {
+                        if(k===i || k===j) continue;
+                        aiCandidates.push([i, j, k]);
+                    }
+                }
+            }
+        }
+
+        function getAiGuess() {
+            if(currentLevel <= 2 || aiCandidates.length === 0) return generateCpuSecret();
+            if(currentLevel <= 5) return aiCandidates[Math.floor(Math.random() * aiCandidates.length)];
+            return aiCandidates[Math.floor(aiCandidates.length / 2)];
+        }
+
+        function checkHitBlow(g, t) {
+            let h=0, b=0;
+            for(let i=0; i<3; i++) {
+                if(g[i]===t[i]) h++;
+                else if(t.includes(g[i])) b++;
+            }
+            return {hit:h, ball:b};
+        }
+
+        // --- ログ表示の変更点: appendChildで下に追加 ---
+        function addLog(id, t, n, r) {
+            const d = document.createElement('div');
+            d.className = 'log-item';
+            d.innerHTML = `<span>${t}. <strong>${n}</strong></span><span class="res"><span class="hit">${r.hit}H</span> <span class="ball">${r.ball}B</span></span>`;
+            
+            const list = document.getElementById(id);
+            list.appendChild(d); // ここを変更（insertBefore -> appendChild）
+            
+            // 最新の結果が見えるように自動スクロール
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function updateLevelDisplay() {
+            document.getElementById('levelDisplay').innerText = `Level ${currentLevel}`;
+        }
+
+        function saveLevel(win) {
+            if(win) currentLevel++;
+            else if(currentLevel > 1) currentLevel--;
+            localStorage.setItem('hb_level', currentLevel);
+        }
+    </script>
+</body>
+</html>
